@@ -12,13 +12,15 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../state/useAuthStore';
+import { useTheme } from '../../theme/ThemeContext';
 import { GradientButton } from '../../components/GradientButton';
 import { WeatherIcon } from '../../components/WeatherIcon';
-import { Colors, FontSize, Spacing, BorderRadius } from '../../theme/colors';
+import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 
 export const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { signUp, isLoading, error, clearError } = useAuthStore();
+  const { colors } = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,7 +48,7 @@ export const SignUpScreen: React.FC = () => {
   const displayError = localError || error;
 
   return (
-    <LinearGradient colors={Colors.gradient.welcome} style={styles.container}>
+    <LinearGradient colors={colors.gradient.welcome} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
@@ -60,16 +62,16 @@ export const SignUpScreen: React.FC = () => {
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={[styles.backText, { color: colors.accent.cyan }]}>← Back</Text>
           </TouchableOpacity>
 
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.iconGlow}>
-              <WeatherIcon name="shield" size={32} color={Colors.accent.cyan} />
+            <View style={[styles.iconGlow, { backgroundColor: colors.accent.cyanGlow, borderColor: 'rgba(0, 212, 255, 0.2)' }]}>
+              <WeatherIcon name="shield" size={32} color={colors.accent.cyan} />
             </View>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.text.primary }]}>Create Account</Text>
+            <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
               Join WeatherGuard to stay safe
             </Text>
           </View>
@@ -77,36 +79,36 @@ export const SignUpScreen: React.FC = () => {
           {/* Form */}
           <View style={styles.form}>
             {displayError ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{displayError}</Text>
+              <View style={[styles.errorBox, { backgroundColor: colors.severity.critical.bg, borderColor: colors.severity.critical.accent }]}>
+                <Text style={[styles.errorText, { color: colors.severity.critical.text }]}>{displayError}</Text>
               </View>
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name</Text>
-              <View style={styles.inputWrapper}>
-                <WeatherIcon name="user" size={16} color={Colors.text.tertiary} />
+              <Text style={[styles.label, { color: colors.text.secondary }]}>Full Name</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.bg.input, borderColor: colors.border.subtle }]}>
+                <WeatherIcon name="user" size={16} color={colors.text.tertiary} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text.primary }]}
                   value={name}
                   onChangeText={(t) => { setName(t); setLocalError(''); clearError(); }}
                   placeholder="Your full name"
-                  placeholderTextColor={Colors.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   autoCapitalize="words"
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <View style={styles.inputWrapper}>
-                <WeatherIcon name="bell" size={16} color={Colors.text.tertiary} />
+              <Text style={[styles.label, { color: colors.text.secondary }]}>Email</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.bg.input, borderColor: colors.border.subtle }]}>
+                <WeatherIcon name="bell" size={16} color={colors.text.tertiary} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text.primary }]}
                   value={email}
                   onChangeText={(t) => { setEmail(t); setLocalError(''); clearError(); }}
                   placeholder="you@example.com"
-                  placeholderTextColor={Colors.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -115,15 +117,15 @@ export const SignUpScreen: React.FC = () => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputWrapper}>
-                <WeatherIcon name="shield" size={16} color={Colors.text.tertiary} />
+              <Text style={[styles.label, { color: colors.text.secondary }]}>Password</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.bg.input, borderColor: colors.border.subtle }]}>
+                <WeatherIcon name="shield" size={16} color={colors.text.tertiary} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text.primary }]}
                   value={password}
                   onChangeText={(t) => { setPassword(t); setLocalError(''); clearError(); }}
                   placeholder="Min 6 characters"
-                  placeholderTextColor={Colors.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   secureTextEntry
                   autoCapitalize="none"
                 />
@@ -131,15 +133,15 @@ export const SignUpScreen: React.FC = () => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <View style={styles.inputWrapper}>
-                <WeatherIcon name="check" size={16} color={Colors.text.tertiary} />
+              <Text style={[styles.label, { color: colors.text.secondary }]}>Confirm Password</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.bg.input, borderColor: colors.border.subtle }]}>
+                <WeatherIcon name="check" size={16} color={colors.text.tertiary} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text.primary }]}
                   value={confirmPassword}
                   onChangeText={(t) => { setConfirmPassword(t); setLocalError(''); clearError(); }}
                   placeholder="Re-enter password"
-                  placeholderTextColor={Colors.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   secureTextEntry
                   autoCapitalize="none"
                 />
@@ -158,9 +160,9 @@ export const SignUpScreen: React.FC = () => {
 
           {/* Login link */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={[styles.footerText, { color: colors.text.secondary }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.footerLink}>Sign In</Text>
+              <Text style={[styles.footerLink, { color: colors.accent.cyan }]}>Sign In</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -183,7 +185,6 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: FontSize.md,
-    color: Colors.accent.cyan,
     fontWeight: '600',
   },
   header: {
@@ -194,35 +195,28 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.accent.cyanGlow,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
   },
   title: {
     fontSize: FontSize.xxxl,
     fontWeight: '900',
-    color: Colors.text.primary,
     letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: FontSize.md,
-    color: Colors.text.secondary,
     marginTop: Spacing.xs,
   },
   form: {},
   errorBox: {
-    backgroundColor: 'rgba(220, 38, 38, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.3)',
     borderRadius: BorderRadius.sm,
     padding: Spacing.md,
     marginBottom: Spacing.lg,
   },
   errorText: {
-    color: Colors.severity.critical.text,
     fontSize: FontSize.sm,
     fontWeight: '600',
   },
@@ -232,7 +226,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FontSize.sm,
     fontWeight: '700',
-    color: Colors.text.secondary,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -240,17 +233,14 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bg.input,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.border.subtle,
     paddingHorizontal: Spacing.lg,
     height: 52,
     gap: Spacing.md,
   },
   input: {
     flex: 1,
-    color: Colors.text.primary,
     fontSize: FontSize.md,
     fontWeight: '500',
   },
@@ -263,11 +253,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xxl,
   },
   footerText: {
-    color: Colors.text.secondary,
     fontSize: FontSize.md,
   },
   footerLink: {
-    color: Colors.accent.cyan,
     fontSize: FontSize.md,
     fontWeight: '700',
   },
