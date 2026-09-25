@@ -4,8 +4,9 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthStore } from './state/useAuthStore';
+import { useTheme } from './theme/ThemeContext';
 import { WeatherIcon } from './components/WeatherIcon';
-import { Colors, FontSize, Spacing } from './theme/colors';
+import { FontSize } from './theme/colors';
 
 // Auth screens
 import { WelcomeScreen } from './screens/auth/WelcomeScreen';
@@ -22,6 +23,7 @@ import { SettingsScreen } from './screens/profile/SettingsScreen';
 import { EditProfileScreen } from './screens/profile/EditProfileScreen';
 import { RiskScoreScreen } from './screens/risk/RiskScoreScreen';
 import { SOSScreen } from './screens/emergency/SOSScreen';
+import { WeatherHistoryScreen } from './screens/history/WeatherHistoryScreen';
 
 // Types
 export type AuthStackParamList = {
@@ -37,6 +39,7 @@ export type RootStackParamList = {
   Settings: undefined;
   EditProfile: undefined;
   Emergency: undefined;
+  WeatherHistory: undefined;
 };
 
 export type TabParamList = {
@@ -50,28 +53,16 @@ const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// Dark theme for NavigationContainer
-const DarkNavTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: Colors.accent.cyan,
-    background: Colors.bg.primary,
-    card: Colors.bg.secondary,
-    text: Colors.text.primary,
-    border: Colors.border.subtle,
-    notification: Colors.accent.amber,
-  },
-};
-
 function MainTabNavigator() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.bg.secondary,
-          borderTopColor: Colors.border.subtle,
+          backgroundColor: colors.bg.secondary,
+          borderTopColor: colors.border.subtle,
           borderTopWidth: 1,
           height: 65,
           paddingBottom: 10,
@@ -81,8 +72,8 @@ function MainTabNavigator() {
           shadowOpacity: 0.3,
           shadowRadius: 10,
         },
-        tabBarActiveTintColor: Colors.accent.cyan,
-        tabBarInactiveTintColor: Colors.text.muted,
+        tabBarActiveTintColor: colors.accent.cyan,
+        tabBarInactiveTintColor: colors.text.muted,
         tabBarLabelStyle: {
           fontSize: FontSize.xs,
           fontWeight: '700',
@@ -137,12 +128,14 @@ function AuthNavigator() {
 }
 
 function AppNavigator() {
+  const { colors } = useTheme();
+
   return (
     <RootStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.bg.secondary },
-        headerTitleStyle: { fontWeight: '700', color: Colors.text.primary, fontSize: FontSize.lg },
-        headerTintColor: Colors.accent.cyan,
+        headerStyle: { backgroundColor: colors.bg.secondary },
+        headerTitleStyle: { fontWeight: '700', color: colors.text.primary, fontSize: FontSize.lg },
+        headerTintColor: colors.accent.cyan,
         headerShadowVisible: false,
       }}
     >
@@ -176,15 +169,34 @@ function AppNavigator() {
         component={SOSScreen}
         options={{ title: 'Emergency SOS', headerShown: false }}
       />
+      <RootStack.Screen
+        name="WeatherHistory"
+        component={WeatherHistoryScreen}
+        options={{ title: 'Weather History' }}
+      />
     </RootStack.Navigator>
   );
 }
 
 export function Navigation() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { colors } = useTheme();
+
+  const navTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: colors.accent.cyan,
+      background: colors.bg.primary,
+      card: colors.bg.secondary,
+      text: colors.text.primary,
+      border: colors.border.subtle,
+      notification: colors.accent.amber,
+    },
+  };
 
   return (
-    <NavigationContainer theme={DarkNavTheme}>
+    <NavigationContainer theme={navTheme}>
       {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );

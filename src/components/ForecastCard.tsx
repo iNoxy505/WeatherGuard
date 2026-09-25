@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 import { WeatherIcon } from './WeatherIcon';
-import { Colors, FontSize, Spacing, BorderRadius } from '../theme/colors';
+import { FontSize, Spacing, BorderRadius } from '../theme/colors';
 
 interface ForecastCardProps {
   day: string;
@@ -18,17 +19,19 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({
   tempLow,
   precipitation,
 }) => {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.card}>
-      <Text style={styles.day}>{day}</Text>
-      <WeatherIcon name={condition} size={28} color={Colors.accent.cyan} />
+    <View style={[styles.card, { backgroundColor: colors.bg.glass, borderColor: colors.bg.glassBorder }]}>
+      <Text style={[styles.day, { color: colors.text.secondary }]}>{day}</Text>
+      <WeatherIcon name={condition} size={28} color={colors.accent.cyan} />
       <View style={styles.temps}>
-        <Text style={styles.high}>{tempHigh}°</Text>
-        <Text style={styles.low}>{tempLow}°</Text>
+        <Text style={[styles.high, { color: colors.text.primary }]}>{tempHigh}°</Text>
+        <Text style={[styles.low, { color: colors.text.tertiary }]}>{tempLow}°</Text>
       </View>
       <View style={styles.precip}>
-        <WeatherIcon name="rain" size={10} color={Colors.text.tertiary} />
-        <Text style={styles.precipText}>{precipitation}%</Text>
+        <WeatherIcon name="rain" size={10} color={colors.text.tertiary} />
+        <Text style={[styles.precipText, { color: colors.text.tertiary }]}>{precipitation}%</Text>
       </View>
     </View>
   );
@@ -36,10 +39,8 @@ export const ForecastCard: React.FC<ForecastCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.bg.glass,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.bg.glassBorder,
     padding: Spacing.md,
     alignItems: 'center',
     marginRight: Spacing.md,
@@ -48,7 +49,6 @@ const styles = StyleSheet.create({
   day: {
     fontSize: FontSize.xs,
     fontWeight: '700',
-    color: Colors.text.secondary,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -62,11 +62,9 @@ const styles = StyleSheet.create({
   high: {
     fontSize: FontSize.md,
     fontWeight: '800',
-    color: Colors.text.primary,
   },
   low: {
     fontSize: FontSize.sm,
-    color: Colors.text.tertiary,
   },
   precip: {
     flexDirection: 'row',
@@ -76,6 +74,5 @@ const styles = StyleSheet.create({
   },
   precipText: {
     fontSize: FontSize.xs,
-    color: Colors.text.tertiary,
   },
 });

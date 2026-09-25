@@ -1,10 +1,11 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
-import { WeatherIcon } from './WeatherIcon';
-import { Colors, FontSize, Spacing, BorderRadius } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { WeatherIcon, IconName } from './WeatherIcon';
+import { FontSize, Spacing, BorderRadius } from '../theme/colors';
 
 interface QuickActionTileProps {
-  icon: 'shield' | 'alert' | 'map' | 'sos' | 'bell' | 'settings' | 'storm' | 'flood';
+  icon: IconName;
   label: string;
   subtitle?: string;
   color?: string;
@@ -15,16 +16,23 @@ export const QuickActionTile: React.FC<QuickActionTileProps> = ({
   icon,
   label,
   subtitle,
-  color = Colors.accent.cyan,
+  color,
   onPress,
 }) => {
+  const { colors } = useTheme();
+  const tileColor = color || colors.accent.cyan;
+
   return (
-    <TouchableOpacity style={styles.tile} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.iconBox, { backgroundColor: `${color}18` }]}>
-        <WeatherIcon name={icon} size={22} color={color} />
+    <TouchableOpacity
+      style={[styles.tile, { backgroundColor: colors.bg.glass, borderColor: colors.bg.glassBorder }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.iconBox, { backgroundColor: `${tileColor}18` }]}>
+        <WeatherIcon name={icon} size={22} color={tileColor} />
       </View>
-      <Text style={styles.label} numberOfLines={1}>{label}</Text>
-      {subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
+      <Text style={[styles.label, { color: colors.text.primary }]} numberOfLines={1}>{label}</Text>
+      {subtitle && <Text style={[styles.subtitle, { color: colors.text.tertiary }]} numberOfLines={1}>{subtitle}</Text>}
     </TouchableOpacity>
   );
 };
@@ -32,10 +40,8 @@ export const QuickActionTile: React.FC<QuickActionTileProps> = ({
 const styles = StyleSheet.create({
   tile: {
     width: '47%',
-    backgroundColor: Colors.bg.glass,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.bg.glassBorder,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
     alignItems: 'center',
@@ -51,12 +57,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FontSize.sm,
     fontWeight: '700',
-    color: Colors.text.primary,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: FontSize.xs,
-    color: Colors.text.tertiary,
     marginTop: 2,
     textAlign: 'center',
   },

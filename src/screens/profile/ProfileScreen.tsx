@@ -3,14 +3,16 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../state/useAuthStore';
+import { useTheme } from '../../theme/ThemeContext';
 import { AvatarCircle } from '../../components/AvatarCircle';
 import { GlassCard } from '../../components/GlassCard';
 import { WeatherIcon } from '../../components/WeatherIcon';
-import { Colors, FontSize, Spacing, BorderRadius } from '../../theme/colors';
+import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, logout } = useAuthStore();
+  const { colors } = useTheme();
 
   const handleLogout = () => {
     Alert.alert(
@@ -32,16 +34,16 @@ export const ProfileScreen: React.FC = () => {
   const menuItems = [
     { icon: 'edit' as const, label: 'Edit Profile', subtitle: 'Name, email, zone', onPress: () => navigation.navigate('EditProfile') },
     { icon: 'settings' as const, label: 'Settings', subtitle: 'Notifications, display', onPress: () => navigation.navigate('Settings') },
-    { icon: 'shield' as const, label: 'Safety History', subtitle: 'Past risk data', onPress: () => {} },
+    { icon: 'history' as const, label: 'Weather History', subtitle: 'Past rain & flood data', onPress: () => navigation.navigate('WeatherHistory') },
     { icon: 'bell' as const, label: 'Alert Preferences', subtitle: 'Custom notifications', onPress: () => navigation.navigate('Settings') },
   ];
 
   return (
-    <LinearGradient colors={Colors.gradient.primary} style={styles.container}>
+    <LinearGradient colors={colors.gradient.primary} style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Profile</Text>
         </View>
 
         {/* Profile Card */}
@@ -50,44 +52,44 @@ export const ProfileScreen: React.FC = () => {
             <AvatarCircle
               name={user?.name || 'U'}
               size={72}
-              color={user?.avatarColor || Colors.accent.cyan}
+              color={user?.avatarColor || colors.accent.cyan}
             />
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{user?.name || 'User'}</Text>
-              <Text style={styles.profileEmail}>{user?.email || ''}</Text>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleText}>{user?.role?.toUpperCase() || 'RESIDENT'}</Text>
+              <Text style={[styles.profileName, { color: colors.text.primary }]}>{user?.name || 'User'}</Text>
+              <Text style={[styles.profileEmail, { color: colors.text.secondary }]}>{user?.email || ''}</Text>
+              <View style={[styles.roleBadge, { backgroundColor: colors.accent.cyanGlow }]}>
+                <Text style={[styles.roleText, { color: colors.accent.cyan }]}>{user?.role?.toUpperCase() || 'RESIDENT'}</Text>
               </View>
             </View>
           </View>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border.subtle }]} />
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{user?.homeZoneName || '—'}</Text>
-              <Text style={styles.statLabel}>Home Zone</Text>
+              <Text style={[styles.statValue, { color: colors.text.primary }]}>{user?.homeZoneName || '—'}</Text>
+              <Text style={[styles.statLabel, { color: colors.text.tertiary }]}>Home Zone</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.border.subtle }]} />
             <View style={styles.stat}>
-              <Text style={styles.statValue}>Active</Text>
-              <Text style={styles.statLabel}>Status</Text>
+              <Text style={[styles.statValue, { color: colors.text.primary }]}>Active</Text>
+              <Text style={[styles.statLabel, { color: colors.text.tertiary }]}>Status</Text>
             </View>
           </View>
         </GlassCard>
 
         {/* Menu Items */}
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Account</Text>
         {menuItems.map((item, idx) => (
           <TouchableOpacity key={idx} onPress={item.onPress} activeOpacity={0.7}>
             <GlassCard style={styles.menuCard}>
               <View style={styles.menuRow}>
-                <View style={styles.menuIcon}>
-                  <WeatherIcon name={item.icon} size={18} color={Colors.accent.cyan} />
+                <View style={[styles.menuIcon, { backgroundColor: colors.accent.cyanGlow }]}>
+                  <WeatherIcon name={item.icon} size={18} color={colors.accent.cyan} />
                 </View>
                 <View style={styles.menuText}>
-                  <Text style={styles.menuLabel}>{item.label}</Text>
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                  <Text style={[styles.menuLabel, { color: colors.text.primary }]}>{item.label}</Text>
+                  <Text style={[styles.menuSubtitle, { color: colors.text.tertiary }]}>{item.subtitle}</Text>
                 </View>
-                <WeatherIcon name="arrow-right" size={16} color={Colors.text.muted} />
+                <WeatherIcon name="arrow-right" size={16} color={colors.text.muted} />
               </View>
             </GlassCard>
           </TouchableOpacity>
@@ -96,18 +98,18 @@ export const ProfileScreen: React.FC = () => {
         {/* App Info */}
         <GlassCard style={styles.appInfoCard}>
           <View style={styles.appInfoRow}>
-            <WeatherIcon name="shield" size={18} color={Colors.accent.cyan} />
+            <WeatherIcon name="shield" size={18} color={colors.accent.cyan} />
             <View style={styles.appInfoText}>
-              <Text style={styles.appName}>WeatherGuard</Text>
-              <Text style={styles.appVersion}>Version 1.0.0 · Build 100</Text>
+              <Text style={[styles.appName, { color: colors.text.primary }]}>WeatherGuard</Text>
+              <Text style={[styles.appVersion, { color: colors.text.tertiary }]}>Version 1.0.0 · Build 100</Text>
             </View>
           </View>
         </GlassCard>
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
-          <WeatherIcon name="logout" size={18} color={Colors.severity.critical.text} />
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <WeatherIcon name="logout" size={18} color={colors.severity.critical.text} />
+          <Text style={[styles.logoutText, { color: colors.severity.critical.text }]}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
     </LinearGradient>
@@ -125,7 +127,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSize.xxl,
     fontWeight: '900',
-    color: Colors.text.primary,
   },
 
   profileCard: {
@@ -142,15 +143,12 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: FontSize.xl,
     fontWeight: '900',
-    color: Colors.text.primary,
   },
   profileEmail: {
     fontSize: FontSize.sm,
-    color: Colors.text.secondary,
     marginTop: 2,
   },
   roleBadge: {
-    backgroundColor: Colors.accent.cyanGlow,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
@@ -160,12 +158,10 @@ const styles = StyleSheet.create({
   roleText: {
     fontSize: FontSize.xs,
     fontWeight: '800',
-    color: Colors.accent.cyan,
     letterSpacing: 0.5,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.border.subtle,
     marginVertical: Spacing.lg,
   },
   statsRow: {
@@ -179,23 +175,19 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text.primary,
   },
   statLabel: {
     fontSize: FontSize.xs,
-    color: Colors.text.tertiary,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: Colors.border.subtle,
   },
 
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: '800',
-    color: Colors.text.primary,
     marginBottom: Spacing.md,
   },
 
@@ -210,7 +202,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.accent.cyanGlow,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,
@@ -221,11 +212,9 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text.primary,
   },
   menuSubtitle: {
     fontSize: FontSize.xs,
-    color: Colors.text.tertiary,
     marginTop: 2,
   },
 
@@ -242,11 +231,9 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text.primary,
   },
   appVersion: {
     fontSize: FontSize.xs,
-    color: Colors.text.tertiary,
     marginTop: 2,
   },
 
@@ -264,6 +251,5 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.severity.critical.text,
   },
 });

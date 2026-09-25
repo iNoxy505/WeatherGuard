@@ -2,14 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../../theme/ThemeContext';
+import { BackgroundPattern } from '../../components/BackgroundPattern';
 import { WeatherIcon } from '../../components/WeatherIcon';
 import { GradientButton } from '../../components/GradientButton';
-import { Colors, FontSize, Spacing } from '../../theme/colors';
+import { FontSize, Spacing } from '../../theme/colors';
 
 const { width, height } = Dimensions.get('window');
 
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { colors, isDark } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const iconScale = useRef(new Animated.Value(0.5)).current;
@@ -55,13 +58,15 @@ export const WelcomeScreen: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={Colors.gradient.welcome}
+      colors={colors.gradient.welcome}
       style={styles.container}
     >
+      <BackgroundPattern isDark={isDark} variant="topography" />
+
       {/* Decorative floating orbs */}
-      <View style={[styles.orb, styles.orb1]} />
-      <View style={[styles.orb, styles.orb2]} />
-      <View style={[styles.orb, styles.orb3]} />
+      <View style={[styles.orb, styles.orb1, { backgroundColor: colors.accent.cyan }]} />
+      <View style={[styles.orb, styles.orb2, { backgroundColor: colors.accent.amber }]} />
+      <View style={[styles.orb, styles.orb3, { backgroundColor: colors.accent.cyan }]} />
 
       <View style={styles.content}>
         {/* Hero Icon */}
@@ -74,19 +79,19 @@ export const WelcomeScreen: React.FC = () => {
             },
           ]}
         >
-          <View style={styles.iconGlow}>
-            <View style={styles.iconInner}>
-              <WeatherIcon name="shield" size={56} color={Colors.accent.cyan} />
+          <View style={[styles.iconGlow, { backgroundColor: colors.accent.cyanGlow }]}>
+            <View style={[styles.iconInner, { backgroundColor: `${colors.accent.cyan}20`, borderColor: `${colors.accent.cyan}50` }]}>
+              <WeatherIcon name="shield" size={56} color={colors.accent.cyan} />
             </View>
           </View>
         </Animated.View>
 
         {/* Title */}
         <Animated.View style={[styles.textContainer, { opacity: fadeAnim }]}>
-          <Text style={styles.appName}>WeatherGuard</Text>
-          <Text style={styles.tagline}>Intelligent Weather Safety</Text>
-          <View style={styles.divider} />
-          <Text style={styles.description}>
+          <Text style={[styles.appName, { color: colors.text.primary }]}>WeatherGuard</Text>
+          <Text style={[styles.tagline, { color: colors.accent.cyan }]}>Intelligent Weather Safety</Text>
+          <View style={[styles.divider, { backgroundColor: colors.accent.cyan }]} />
+          <Text style={[styles.description, { color: colors.text.secondary }]}>
             Real-time risk monitoring, emergency alerts, and community safety — all in one premium experience.
           </Text>
         </Animated.View>
@@ -102,16 +107,20 @@ export const WelcomeScreen: React.FC = () => {
           ]}
         >
           <View style={styles.featureRow}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Live environmental telemetry</Text>
+            <View style={[styles.featureDot, { backgroundColor: colors.accent.cyan }]} />
+            <Text style={[styles.featureText, { color: colors.text.secondary }]}>Live environmental telemetry</Text>
           </View>
           <View style={styles.featureRow}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>GPS-enabled emergency SOS</Text>
+            <View style={[styles.featureDot, { backgroundColor: colors.accent.cyan }]} />
+            <Text style={[styles.featureText, { color: colors.text.secondary }]}>Landslide prediction & safe exit routing</Text>
           </View>
           <View style={styles.featureRow}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Offline-first with SMS fallback</Text>
+            <View style={[styles.featureDot, { backgroundColor: colors.accent.cyan }]} />
+            <Text style={[styles.featureText, { color: colors.text.secondary }]}>GPS-enabled emergency SOS</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <View style={[styles.featureDot, { backgroundColor: colors.accent.cyan }]} />
+            <Text style={[styles.featureText, { color: colors.text.secondary }]}>Offline-first with SMS fallback</Text>
           </View>
         </Animated.View>
 
@@ -141,7 +150,7 @@ export const WelcomeScreen: React.FC = () => {
         </Animated.View>
       </View>
 
-      <Text style={styles.version}>v1.0.0</Text>
+      <Text style={[styles.version, { color: colors.text.muted }]}>v1.0.0</Text>
     </LinearGradient>
   );
 };
@@ -164,21 +173,18 @@ const styles = StyleSheet.create({
   orb1: {
     width: 300,
     height: 300,
-    backgroundColor: Colors.accent.cyan,
     top: -80,
     right: -100,
   },
   orb2: {
     width: 200,
     height: 200,
-    backgroundColor: Colors.accent.amber,
     bottom: 100,
     left: -60,
   },
   orb3: {
     width: 150,
     height: 150,
-    backgroundColor: Colors.accent.cyan,
     bottom: -30,
     right: -40,
   },
@@ -189,7 +195,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.accent.cyanGlow,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -197,11 +202,9 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: 'rgba(0, 212, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.3)',
   },
   textContainer: {
     alignItems: 'center',
@@ -210,12 +213,10 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: FontSize.hero,
     fontWeight: '900',
-    color: Colors.text.primary,
     letterSpacing: 1,
   },
   tagline: {
     fontSize: FontSize.lg,
-    color: Colors.accent.cyan,
     fontWeight: '600',
     marginTop: Spacing.xs,
     letterSpacing: 0.5,
@@ -223,14 +224,12 @@ const styles = StyleSheet.create({
   divider: {
     width: 40,
     height: 2,
-    backgroundColor: Colors.accent.cyan,
     marginVertical: Spacing.lg,
     borderRadius: 1,
     opacity: 0.5,
   },
   description: {
     fontSize: FontSize.md,
-    color: Colors.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -248,12 +247,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.accent.cyan,
     marginRight: Spacing.md,
   },
   featureText: {
     fontSize: FontSize.md,
-    color: Colors.text.secondary,
     fontWeight: '500',
   },
   buttonContainer: {
@@ -268,6 +265,5 @@ const styles = StyleSheet.create({
     bottom: Spacing.xl,
     alignSelf: 'center',
     fontSize: FontSize.xs,
-    color: Colors.text.muted,
   },
 });

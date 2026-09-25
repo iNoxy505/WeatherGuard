@@ -67,10 +67,56 @@ class DatabaseService {
       );
     `);
 
+    // ─── Historical Weather Data ───────────────────────────────
+    await db.executeSql(`
+      CREATE TABLE IF NOT EXISTS weather_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        zone_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        rainfall_mm REAL DEFAULT 0,
+        river_level_m REAL DEFAULT 0,
+        soil_saturation_pct REAL DEFAULT 0,
+        wind_speed_kmh REAL DEFAULT 0,
+        flood_level TEXT DEFAULT 'NONE',
+        water_accumulation_mm REAL DEFAULT 0,
+        landslide_risk_pct REAL DEFAULT 0,
+        landslide_occurred INTEGER DEFAULT 0,
+        notes TEXT DEFAULT ''
+      );
+    `);
+
+    // ─── Landslide Records ─────────────────────────────────────
+    await db.executeSql(`
+      CREATE TABLE IF NOT EXISTS landslide_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        zone_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        slope_angle_deg REAL DEFAULT 0,
+        soil_type TEXT DEFAULT 'clay',
+        rainfall_trigger_mm REAL DEFAULT 0,
+        casualties INTEGER DEFAULT 0,
+        damage_estimate TEXT DEFAULT '',
+        notes TEXT DEFAULT ''
+      );
+    `);
+
     // Seed default alerts if empty
     const [alertCountResult] = await db.executeSql('SELECT COUNT(*) as count FROM alerts');
     if (alertCountResult.rows.item(0).count === 0) {
       await this.seedAlerts();
+    }
+
+    // Seed weather history if empty
+    const [histCountResult] = await db.executeSql('SELECT COUNT(*) as count FROM weather_history');
+    if (histCountResult.rows.item(0).count === 0) {
+      await this.seedWeatherHistory();
+    }
+
+    // Seed landslide records if empty
+    const [lsCountResult] = await db.executeSql('SELECT COUNT(*) as count FROM landslide_records');
+    if (lsCountResult.rows.item(0).count === 0) {
+      await this.seedLandslideRecords();
     }
   }
 
@@ -243,6 +289,54 @@ class DatabaseService {
     await db.executeSql(`UPDATE settings SET ${fields.join(', ')} WHERE user_id = ?`, values);
   }
 
+  // ─── Weather History Operations ───────────────────────────
+  async getWeatherHistory(zoneId?: string, limit: number = 30): Promise<any[]> {
+    const db = await this.open();
+    const query = zoneId
+      ? 'SELECT * FROM weather_history WHERE zone_id = ? ORDER BY date DESC LIMIT ?'
+      : 'SELECT * FROM weather_history ORDER BY date DESC LIMIT ?';
+    const params = zoneId ? [zoneId, limit] : [limit];
+    const [result] = await db.executeSql(query, params);
+    const records: any[] = [];
+    for (let i = 0; i < result.rows.length; i++) {
+      records.push(result.rows.item(i));
+    }
+    return records;
+  }
+
+  async getWeatherStats(zoneId: string): Promise<any> {
+    const db = await this.open();
+    const [result] = await db.executeSql(`
+      SELECT
+        AVG(rainfall_mm) as avg_rainfall,
+        MAX(rainfall_mm) as max_rainfall,
+        AVG(river_level_m) as avg_river_level,
+        MAX(river_level_m) as max_river_level,
+        AVG(soil_saturation_pct) as avg_soil_saturation,
+        AVG(landslide_risk_pct) as avg_landslide_risk,
+        MAX(landslide_risk_pct) as max_landslide_risk,
+        SUM(landslide_occurred) as total_landslides,
+        COUNT(*) as total_records
+      FROM weather_history WHERE zone_id = ?
+    `, [zoneId]);
+    return result.rows.item(0);
+  }
+
+  // ─── Landslide Records Operations ────────────────────────
+  async getLandslideRecords(zoneId?: string): Promise<any[]> {
+    const db = await this.open();
+    const query = zoneId
+      ? 'SELECT * FROM landslide_records WHERE zone_id = ? ORDER BY date DESC'
+      : 'SELECT * FROM landslide_records ORDER BY date DESC';
+    const params = zoneId ? [zoneId] : [];
+    const [result] = await db.executeSql(query, params);
+    const records: any[] = [];
+    for (let i = 0; i < result.rows.length; i++) {
+      records.push(result.rows.item(i));
+    }
+    return records;
+  }
+
   // ─── Seed Data ─────────────────────────────────────────────
   private async seedAlerts(): Promise<void> {
     const db = this.db!;
@@ -259,6 +353,48 @@ class DatabaseService {
       await db.executeSql(
         'INSERT OR IGNORE INTO alerts (id, zone_id, severity, title, description) VALUES (?, ?, ?, ?, ?)',
         [alert.id, alert.zone_id, alert.severity, alert.title, alert.description]
+      );
+    }
+  }
+
+  private async seedWeatherHistory(): Promise<void> {
+    const db = this.db!;
+    const history = [
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-24', rainfall_mm: 45.2, river_level_m: 2.8, soil_saturation_pct: 72, wind_speed_kmh: 42, flood_level: 'MINOR', water_accumulation_mm: 120, landslide_risk_pct: 35, landslide_occurred: 0, notes: 'Moderate rainfall throughout the day' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-23', rainfall_mm: 78.5, river_level_m: 3.4, soil_saturation_pct: 85, wind_speed_kmh: 58, flood_level: 'MODERATE', water_accumulation_mm: 280, landslide_risk_pct: 62, landslide_occurred: 0, notes: 'Heavy rainfall with flooding in low-lying areas' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-22', rainfall_mm: 112.3, river_level_m: 4.1, soil_saturation_pct: 94, wind_speed_kmh: 72, flood_level: 'SEVERE', water_accumulation_mm: 450, landslide_risk_pct: 88, landslide_occurred: 1, notes: 'Extreme rainfall event, minor landslide on eastern slope' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-21', rainfall_mm: 22.1, river_level_m: 2.1, soil_saturation_pct: 55, wind_speed_kmh: 28, flood_level: 'NONE', water_accumulation_mm: 45, landslide_risk_pct: 15, landslide_occurred: 0, notes: 'Light scattered showers' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-20', rainfall_mm: 8.4, river_level_m: 1.8, soil_saturation_pct: 42, wind_speed_kmh: 18, flood_level: 'NONE', water_accumulation_mm: 12, landslide_risk_pct: 8, landslide_occurred: 0, notes: 'Mostly clear with brief drizzle' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-19', rainfall_mm: 55.8, river_level_m: 3.0, soil_saturation_pct: 68, wind_speed_kmh: 45, flood_level: 'MINOR', water_accumulation_mm: 165, landslide_risk_pct: 42, landslide_occurred: 0, notes: 'Steady rain throughout evening hours' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-18', rainfall_mm: 92.6, river_level_m: 3.8, soil_saturation_pct: 89, wind_speed_kmh: 65, flood_level: 'MODERATE', water_accumulation_mm: 340, landslide_risk_pct: 75, landslide_occurred: 0, notes: 'Heavy sustained rainfall with strong winds' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-17', rainfall_mm: 15.3, river_level_m: 1.9, soil_saturation_pct: 48, wind_speed_kmh: 22, flood_level: 'NONE', water_accumulation_mm: 28, landslide_risk_pct: 12, landslide_occurred: 0, notes: 'Overcast with light showers' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-16', rainfall_mm: 3.2, river_level_m: 1.6, soil_saturation_pct: 35, wind_speed_kmh: 12, flood_level: 'NONE', water_accumulation_mm: 5, landslide_risk_pct: 5, landslide_occurred: 0, notes: 'Clear skies, dry conditions' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-15', rainfall_mm: 68.4, river_level_m: 3.2, soil_saturation_pct: 78, wind_speed_kmh: 52, flood_level: 'MINOR', water_accumulation_mm: 210, landslide_risk_pct: 55, landslide_occurred: 0, notes: 'Thunderstorm activity with heavy downpours' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-14', rainfall_mm: 125.7, river_level_m: 4.5, soil_saturation_pct: 96, wind_speed_kmh: 78, flood_level: 'SEVERE', water_accumulation_mm: 520, landslide_risk_pct: 92, landslide_occurred: 1, notes: 'Major flooding event, landslide on Ward 3 hillside' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-13', rainfall_mm: 38.9, river_level_m: 2.5, soil_saturation_pct: 62, wind_speed_kmh: 35, flood_level: 'NONE', water_accumulation_mm: 85, landslide_risk_pct: 28, landslide_occurred: 0, notes: 'Moderate rainfall in afternoon' },
+    ];
+
+    for (const h of history) {
+      await db.executeSql(
+        `INSERT INTO weather_history (zone_id, date, rainfall_mm, river_level_m, soil_saturation_pct, wind_speed_kmh, flood_level, water_accumulation_mm, landslide_risk_pct, landslide_occurred, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [h.zone_id, h.date, h.rainfall_mm, h.river_level_m, h.soil_saturation_pct, h.wind_speed_kmh, h.flood_level, h.water_accumulation_mm, h.landslide_risk_pct, h.landslide_occurred, h.notes]
+      );
+    }
+  }
+
+  private async seedLandslideRecords(): Promise<void> {
+    const db = this.db!;
+    const records = [
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-22', severity: 'MODERATE', slope_angle_deg: 32, soil_type: 'laterite', rainfall_trigger_mm: 112.3, casualties: 0, damage_estimate: 'Minor road blockage, 2 structures damaged', notes: 'Debris flow on eastern slope after sustained rainfall exceeding 100mm' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-09-14', severity: 'HIGH', slope_angle_deg: 38, soil_type: 'clay-loam', rainfall_trigger_mm: 125.7, casualties: 0, damage_estimate: '4 homes damaged, main road blocked for 8 hours', notes: 'Rotational slide on Ward 3 hillside. Soil was pre-saturated from 3 consecutive days of rain.' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-08-28', severity: 'LOW', slope_angle_deg: 25, soil_type: 'sandy-clay', rainfall_trigger_mm: 88.4, casualties: 0, damage_estimate: 'Minor soil movement, no structural damage', notes: 'Small surface slip near river bank area' },
+      { zone_id: 'zone_village_a_ward_3', date: '2026-07-15', severity: 'CRITICAL', slope_angle_deg: 42, soil_type: 'clay', rainfall_trigger_mm: 145.2, casualties: 2, damage_estimate: '12 homes destroyed, bridge damaged', notes: 'Major debris avalanche triggered by extreme monsoon rainfall. Area was under evacuation advisory.' },
+    ];
+
+    for (const r of records) {
+      await db.executeSql(
+        `INSERT INTO landslide_records (zone_id, date, severity, slope_angle_deg, soil_type, rainfall_trigger_mm, casualties, damage_estimate, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [r.zone_id, r.date, r.severity, r.slope_angle_deg, r.soil_type, r.rainfall_trigger_mm, r.casualties, r.damage_estimate, r.notes]
       );
     }
   }

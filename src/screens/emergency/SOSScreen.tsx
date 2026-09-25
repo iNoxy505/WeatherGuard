@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import { apiClient } from '../../services/api/apiClient';
 import { smsService } from '../../services/sms/smsService';
 import { useAuthStore } from '../../state/useAuthStore';
 import { useRiskStore } from '../../state/useRiskStore';
+import { useTheme } from '../../theme/ThemeContext';
 import { WeatherIcon } from '../../components/WeatherIcon';
 import { GlassCard } from '../../components/GlassCard';
-import { Colors, FontSize, Spacing, BorderRadius } from '../../theme/colors';
+import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 
 export const SOSScreen: React.FC = () => {
   const [isDispatching, setIsDispatching] = useState(false);
   const user = useAuthStore((state) => state.user);
   const isConnected = useRiskStore((state) => state.isConnected);
+  const { colors } = useTheme();
 
   const triggerSOS = () => {
     Alert.alert(
@@ -71,14 +73,14 @@ export const SOSScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient colors={Colors.gradient.primary} style={styles.container}>
+    <LinearGradient colors={colors.gradient.primary} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <WeatherIcon name="sos" size={22} color={Colors.severity.critical.text} />
-        <Text style={styles.headerTitle}>Emergency Rescue Channel</Text>
+        <WeatherIcon name="sos" size={22} color={colors.severity.critical.text} />
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Emergency Rescue Channel</Text>
       </View>
 
-      <Text style={styles.description}>
+      <Text style={[styles.description, { color: colors.text.secondary }]}>
         Transmits your location immediately. If network connectivity is unavailable, the
         system will route your coordinates via cellular SMS fallback.
       </Text>
@@ -86,8 +88,8 @@ export const SOSScreen: React.FC = () => {
       {/* Connection Status */}
       <GlassCard style={styles.statusCard}>
         <View style={styles.statusRow}>
-          <View style={[styles.statusDot, { backgroundColor: isConnected ? Colors.status.online : Colors.status.offline }]} />
-          <Text style={styles.statusText}>
+          <View style={[styles.statusDot, { backgroundColor: isConnected ? colors.status.online : colors.status.offline }]} />
+          <Text style={[styles.statusText, { color: colors.text.secondary }]}>
             {isConnected ? 'Online — API dispatch active' : 'Offline — SMS fallback ready'}
           </Text>
         </View>
@@ -120,29 +122,29 @@ export const SOSScreen: React.FC = () => {
 
       {/* SMS Fallback */}
       <TouchableOpacity
-        style={styles.manualSmsBtn}
+        style={[styles.manualSmsBtn, { backgroundColor: colors.bg.glass, borderColor: colors.border.subtle }]}
         onPress={() => fallbackToSMS(0, 0)}
         disabled={isDispatching}
         activeOpacity={0.7}
       >
-        <WeatherIcon name="alert" size={16} color={Colors.text.secondary} />
-        <Text style={styles.manualSmsText}>Direct Emergency SMS Fallback</Text>
+        <WeatherIcon name="alert" size={16} color={colors.text.secondary} />
+        <Text style={[styles.manualSmsText, { color: colors.text.secondary }]}>Direct Emergency SMS Fallback</Text>
       </TouchableOpacity>
 
       {/* Emergency Numbers */}
       <GlassCard style={styles.numbersCard}>
-        <Text style={styles.numbersTitle}>EMERGENCY CONTACTS</Text>
-        <View style={styles.numberRow}>
-          <Text style={styles.numberLabel}>National Emergency</Text>
-          <Text style={styles.numberValue}>112</Text>
+        <Text style={[styles.numbersTitle, { color: colors.text.tertiary }]}>EMERGENCY CONTACTS</Text>
+        <View style={[styles.numberRow, { borderBottomColor: colors.border.subtle }]}>
+          <Text style={[styles.numberLabel, { color: colors.text.secondary }]}>National Emergency</Text>
+          <Text style={[styles.numberValue, { color: colors.severity.critical.text }]}>112</Text>
         </View>
-        <View style={styles.numberRow}>
-          <Text style={styles.numberLabel}>Fire & Rescue</Text>
-          <Text style={styles.numberValue}>101</Text>
+        <View style={[styles.numberRow, { borderBottomColor: colors.border.subtle }]}>
+          <Text style={[styles.numberLabel, { color: colors.text.secondary }]}>Fire & Rescue</Text>
+          <Text style={[styles.numberValue, { color: colors.severity.critical.text }]}>101</Text>
         </View>
-        <View style={styles.numberRow}>
-          <Text style={styles.numberLabel}>Ambulance</Text>
-          <Text style={styles.numberValue}>108</Text>
+        <View style={[styles.numberRow, { borderBottomColor: colors.border.subtle }]}>
+          <Text style={[styles.numberLabel, { color: colors.text.secondary }]}>Ambulance</Text>
+          <Text style={[styles.numberValue, { color: colors.severity.critical.text }]}>108</Text>
         </View>
       </GlassCard>
     </LinearGradient>
@@ -164,11 +166,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSize.xl,
     fontWeight: '900',
-    color: Colors.text.primary,
   },
   description: {
     fontSize: FontSize.sm,
-    color: Colors.text.secondary,
     lineHeight: 20,
     marginBottom: Spacing.xl,
   },
@@ -188,7 +188,6 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: FontSize.sm,
-    color: Colors.text.secondary,
     fontWeight: '600',
   },
 
@@ -213,8 +212,11 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 100,
     overflow: 'hidden',
-    ...Colors.shadow.glow,
     shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   sosGradient: {
     width: '100%',
@@ -244,15 +246,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.bg.glass,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.border.subtle,
     gap: Spacing.sm,
     marginBottom: Spacing.xxl,
   },
   manualSmsText: {
-    color: Colors.text.secondary,
     fontWeight: '700',
     fontSize: FontSize.sm,
   },
@@ -261,7 +260,6 @@ const styles = StyleSheet.create({
   numbersTitle: {
     fontSize: FontSize.xs,
     fontWeight: '800',
-    color: Colors.text.tertiary,
     letterSpacing: 1,
     marginBottom: Spacing.md,
   },
@@ -271,16 +269,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.subtle,
   },
   numberLabel: {
     fontSize: FontSize.sm,
-    color: Colors.text.secondary,
     fontWeight: '500',
   },
   numberValue: {
     fontSize: FontSize.md,
-    color: Colors.severity.critical.text,
     fontWeight: '800',
   },
 });

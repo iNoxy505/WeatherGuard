@@ -12,10 +12,11 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../state/useAuthStore';
+import { useTheme } from '../../theme/ThemeContext';
 import { AvatarCircle } from '../../components/AvatarCircle';
 import { GradientButton } from '../../components/GradientButton';
 import { WeatherIcon } from '../../components/WeatherIcon';
-import { Colors, FontSize, Spacing, BorderRadius } from '../../theme/colors';
+import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 
 const AVATAR_COLORS = [
   '#00D4FF', '#4ADE80', '#FACC15', '#FB923C', '#F87171',
@@ -25,9 +26,10 @@ const AVATAR_COLORS = [
 export const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, updateProfile } = useAuthStore();
+  const { colors } = useTheme();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [avatarColor, setAvatarColor] = useState(user?.avatarColor || Colors.accent.cyan);
+  const [avatarColor, setAvatarColor] = useState(user?.avatarColor || colors.accent.cyan);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -53,7 +55,7 @@ export const EditProfileScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient colors={Colors.gradient.primary} style={styles.container}>
+    <LinearGradient colors={colors.gradient.primary} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
@@ -62,7 +64,7 @@ export const EditProfileScreen: React.FC = () => {
           {/* Avatar Preview */}
           <View style={styles.avatarSection}>
             <AvatarCircle name={name || 'U'} size={80} color={avatarColor} />
-            <Text style={styles.changeAvatar}>Tap a color below</Text>
+            <Text style={[styles.changeAvatar, { color: colors.text.tertiary }]}>Tap a color below</Text>
           </View>
 
           {/* Color Picker */}
@@ -72,7 +74,7 @@ export const EditProfileScreen: React.FC = () => {
                 key={color}
                 style={[
                   styles.colorOption,
-                  avatarColor === color && styles.colorSelected,
+                  avatarColor === color && [styles.colorSelected, { borderColor: colors.text.primary }],
                 ]}
               >
                 <View
@@ -88,30 +90,30 @@ export const EditProfileScreen: React.FC = () => {
 
           {/* Form */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <View style={styles.inputWrapper}>
-              <WeatherIcon name="user" size={16} color={Colors.text.tertiary} />
+            <Text style={[styles.label, { color: colors.text.secondary }]}>Full Name</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.bg.input, borderColor: colors.border.subtle }]}>
+              <WeatherIcon name="user" size={16} color={colors.text.tertiary} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text.primary }]}
                 value={name}
                 onChangeText={setName}
                 placeholder="Your name"
-                placeholderTextColor={Colors.text.muted}
+                placeholderTextColor={colors.text.muted}
                 autoCapitalize="words"
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <View style={styles.inputWrapper}>
-              <WeatherIcon name="bell" size={16} color={Colors.text.tertiary} />
+            <Text style={[styles.label, { color: colors.text.secondary }]}>Email</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.bg.input, borderColor: colors.border.subtle }]}>
+              <WeatherIcon name="bell" size={16} color={colors.text.tertiary} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text.primary }]}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
-                placeholderTextColor={Colors.text.muted}
+                placeholderTextColor={colors.text.muted}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -119,12 +121,12 @@ export const EditProfileScreen: React.FC = () => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Home Zone</Text>
-            <View style={[styles.inputWrapper, styles.disabledInput]}>
-              <WeatherIcon name="map" size={16} color={Colors.text.tertiary} />
-              <Text style={styles.disabledText}>{user?.homeZoneName || 'Village A (Ward 3)'}</Text>
+            <Text style={[styles.label, { color: colors.text.secondary }]}>Home Zone</Text>
+            <View style={[styles.inputWrapper, styles.disabledInput, { backgroundColor: colors.bg.input, borderColor: colors.border.subtle }]}>
+              <WeatherIcon name="map" size={16} color={colors.text.tertiary} />
+              <Text style={[styles.disabledText, { color: colors.text.secondary }]}>{user?.homeZoneName || 'Village A (Ward 3)'}</Text>
             </View>
-            <Text style={styles.hint}>Contact administrators to change your zone assignment</Text>
+            <Text style={[styles.hint, { color: colors.text.muted }]}>Contact administrators to change your zone assignment</Text>
           </View>
 
           <GradientButton
@@ -153,7 +155,6 @@ const styles = StyleSheet.create({
   },
   changeAvatar: {
     fontSize: FontSize.sm,
-    color: Colors.text.tertiary,
     marginTop: Spacing.sm,
   },
 
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorSelected: {
-    borderColor: Colors.text.primary,
+    // borderColor set dynamically
   },
   colorDot: {
     width: 28,
@@ -185,7 +186,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FontSize.sm,
     fontWeight: '700',
-    color: Colors.text.secondary,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -193,17 +193,14 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.bg.input,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.border.subtle,
     paddingHorizontal: Spacing.lg,
     height: 52,
     gap: Spacing.md,
   },
   input: {
     flex: 1,
-    color: Colors.text.primary,
     fontSize: FontSize.md,
     fontWeight: '500',
   },
@@ -211,12 +208,10 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   disabledText: {
-    color: Colors.text.secondary,
     fontSize: FontSize.md,
   },
   hint: {
     fontSize: FontSize.xs,
-    color: Colors.text.muted,
     marginTop: Spacing.xs,
   },
 

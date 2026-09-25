@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, BorderRadius, Spacing } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { BorderRadius, Spacing } from '../theme/colors';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -15,11 +16,19 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   glowColor,
   noPadding = false,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <View
       style={[
-        styles.card,
-        !noPadding && styles.padding,
+        {
+          backgroundColor: colors.bg.glass,
+          borderRadius: BorderRadius.lg,
+          borderWidth: 1,
+          borderColor: colors.bg.glassBorder,
+          ...colors.shadow.card,
+        },
+        !noPadding && { padding: Spacing.lg },
         glowColor ? {
           borderColor: glowColor,
           shadowColor: glowColor,
@@ -34,16 +43,3 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.bg.glass,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.bg.glassBorder,
-    ...Colors.shadow.card,
-  },
-  padding: {
-    padding: Spacing.lg,
-  },
-});

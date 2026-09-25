@@ -12,6 +12,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../state/useAuthStore';
 import { useRiskStore } from '../../state/useRiskStore';
 import { useAlertStore } from '../../state/useAlertStore';
+import { useTheme } from '../../theme/ThemeContext';
+import { BackgroundPattern } from '../../components/BackgroundPattern';
 import { GlassCard } from '../../components/GlassCard';
 import { RiskBadge } from '../../components/RiskBadge';
 import { RiskGauge } from '../../components/RiskGauge';
@@ -19,7 +21,7 @@ import { QuickActionTile } from '../../components/QuickActionTile';
 import { ForecastCard } from '../../components/ForecastCard';
 import { AvatarCircle } from '../../components/AvatarCircle';
 import { WeatherIcon } from '../../components/WeatherIcon';
-import { Colors, FontSize, Spacing, BorderRadius } from '../../theme/colors';
+import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +39,7 @@ export const DashboardScreen: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const { currentRisk, isLoading, fetchRiskData, lastSyncedAt } = useRiskStore();
   const { unreadCount, fetchAlerts } = useAlertStore();
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     if (user?.homeZoneId) {
@@ -52,23 +55,24 @@ export const DashboardScreen: React.FC = () => {
 
   const getSeverityColor = () => {
     switch (currentRisk?.severityLabel) {
-      case 'CRITICAL': return Colors.severity.critical.accent;
-      case 'HIGH': return Colors.severity.high.accent;
-      case 'MODERATE': return Colors.severity.moderate.accent;
-      default: return Colors.severity.low.accent;
+      case 'CRITICAL': return colors.severity.critical.accent;
+      case 'HIGH': return colors.severity.high.accent;
+      case 'MODERATE': return colors.severity.moderate.accent;
+      default: return colors.severity.low.accent;
     }
   };
 
   return (
-    <LinearGradient colors={Colors.gradient.primary} style={styles.container}>
+    <LinearGradient colors={colors.gradient.primary} style={styles.container}>
+      <BackgroundPattern isDark={isDark} variant="topography" />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
             onRefresh={onRefresh}
-            tintColor={Colors.accent.cyan}
-            colors={[Colors.accent.cyan]}
+            tintColor={colors.accent.cyan}
+            colors={[colors.accent.cyan]}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -76,29 +80,29 @@ export const DashboardScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>
+            <Text style={[styles.greeting, { color: colors.text.secondary }]}>
               Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}
             </Text>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+            <Text style={[styles.userName, { color: colors.text.primary }]}>{user?.name || 'User'}</Text>
             <View style={styles.locationRow}>
-              <WeatherIcon name="map" size={12} color={Colors.accent.cyan} />
-              <Text style={styles.location}>{user?.homeZoneName || 'Unknown Zone'}</Text>
+              <WeatherIcon name="map" size={12} color={colors.accent.cyan} />
+              <Text style={[styles.location, { color: colors.accent.cyan }]}>{user?.homeZoneName || 'Unknown Zone'}</Text>
             </View>
           </View>
-          <AvatarCircle name={user?.name || 'U'} size={50} color={user?.avatarColor || Colors.accent.cyan} />
+          <AvatarCircle name={user?.name || 'U'} size={50} color={user?.avatarColor || colors.accent.cyan} />
         </View>
 
         {/* Hero Risk Card */}
         <GlassCard style={styles.heroCard} glowColor={getSeverityColor()}>
           <View style={styles.heroTop}>
             <View style={styles.heroLeft}>
-              <Text style={styles.heroLabel}>Area Safety Index</Text>
+              <Text style={[styles.heroLabel, { color: colors.text.secondary }]}>Area Safety Index</Text>
               {currentRisk && <RiskBadge severity={currentRisk.severityLabel} />}
-              <Text style={styles.heroScore}>
+              <Text style={[styles.heroScore, { color: colors.text.primary }]}>
                 {currentRisk?.compositeScore ?? '—'}
-                <Text style={styles.heroScoreMax}> / 100</Text>
+                <Text style={[styles.heroScoreMax, { color: colors.text.tertiary }]}> / 100</Text>
               </Text>
-              <Text style={styles.syncText}>
+              <Text style={[styles.syncText, { color: colors.text.muted }]}>
                 Last sync: {lastSyncedAt
                   ? new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                   : 'Pending'}
@@ -116,14 +120,14 @@ export const DashboardScreen: React.FC = () => {
           </View>
 
           {/* Factor mini bars */}
-          <View style={styles.factorStrip}>
+          <View style={[styles.factorStrip, { borderTopColor: colors.border.subtle }]}>
             {currentRisk?.factors.map((factor) => (
               <View key={factor.name} style={styles.factorItem}>
                 <View style={styles.factorTop}>
-                  <Text style={styles.factorName} numberOfLines={1}>{factor.name}</Text>
-                  <Text style={styles.factorVal}>{factor.value}{factor.unit}</Text>
+                  <Text style={[styles.factorName, { color: colors.text.secondary }]} numberOfLines={1}>{factor.name}</Text>
+                  <Text style={[styles.factorVal, { color: colors.text.primary }]}>{factor.value}{factor.unit}</Text>
                 </View>
-                <View style={styles.factorBarBg}>
+                <View style={[styles.factorBarBg, { backgroundColor: colors.bg.glass }]}>
                   <View
                     style={[
                       styles.factorBarFill,
@@ -139,41 +143,77 @@ export const DashboardScreen: React.FC = () => {
           </View>
         </GlassCard>
 
+        {/* Landslide Prediction Card */}
+        {currentRisk?.landslideRisk && (
+          <GlassCard style={styles.landslideCard} glowColor={
+            currentRisk.landslideRisk.prediction === 'CRITICAL' ? colors.severity.critical.accent :
+            currentRisk.landslideRisk.prediction === 'HIGH' ? colors.severity.high.accent :
+            currentRisk.landslideRisk.prediction === 'MODERATE' ? colors.severity.moderate.accent :
+            colors.severity.low.accent
+          }>
+            <View style={styles.landslideHeader}>
+              <WeatherIcon name="landslide" size={18} color={colors.severity[currentRisk.landslideRisk.prediction.toLowerCase() as keyof typeof colors.severity]?.text || colors.accent.amber} />
+              <Text style={[styles.landslideTitle, { color: colors.text.primary }]}>Landslide Prediction</Text>
+              <View style={[styles.landslideChip, { backgroundColor: colors.severity[currentRisk.landslideRisk.prediction.toLowerCase() as keyof typeof colors.severity]?.bg }]}>
+                <Text style={[styles.landslideChipText, { color: colors.severity[currentRisk.landslideRisk.prediction.toLowerCase() as keyof typeof colors.severity]?.text }]}>
+                  {currentRisk.landslideRisk.probability}%
+                </Text>
+              </View>
+            </View>
+            <View style={styles.landslideStats}>
+              <View style={styles.landslideStatItem}>
+                <Text style={[styles.landslideStatLabel, { color: colors.text.tertiary }]}>Slope</Text>
+                <Text style={[styles.landslideStatValue, { color: colors.text.primary }]}>{currentRisk.landslideRisk.slopeAngle}°</Text>
+              </View>
+              <View style={[styles.landslideStatDivider, { backgroundColor: colors.border.subtle }]} />
+              <View style={styles.landslideStatItem}>
+                <Text style={[styles.landslideStatLabel, { color: colors.text.tertiary }]}>Soil</Text>
+                <Text style={[styles.landslideStatValue, { color: colors.text.primary }]}>{currentRisk.landslideRisk.soilType}</Text>
+              </View>
+              <View style={[styles.landslideStatDivider, { backgroundColor: colors.border.subtle }]} />
+              <View style={styles.landslideStatItem}>
+                <Text style={[styles.landslideStatLabel, { color: colors.text.tertiary }]}>Trigger</Text>
+                <Text style={[styles.landslideStatValue, { color: colors.text.primary }]}>{currentRisk.landslideRisk.triggerThreshold}mm</Text>
+              </View>
+            </View>
+          </GlassCard>
+        )}
+
         {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Quick Actions</Text>
         <View style={styles.quickGrid}>
           <QuickActionTile
             icon="shield"
             label="Safety Score"
             subtitle="Full Breakdown"
-            color={Colors.accent.cyan}
+            color={colors.accent.cyan}
             onPress={() => navigation.navigate('RiskScore')}
           />
           <QuickActionTile
             icon="alert"
             label="Alerts"
             subtitle={unreadCount > 0 ? `${unreadCount} new` : 'Up to date'}
-            color={Colors.accent.amber}
+            color={colors.accent.amber}
             onPress={() => navigation.navigate('AlertsTab')}
           />
           <QuickActionTile
             icon="sos"
             label="Emergency"
             subtitle="SOS Channel"
-            color={Colors.severity.critical.accent}
+            color={colors.severity.critical.accent}
             onPress={() => navigation.navigate('Emergency')}
           />
           <QuickActionTile
-            icon="map"
-            label="Zone Map"
-            subtitle="Risk Zones"
-            color={Colors.severity.moderate.accent}
-            onPress={() => navigation.navigate('MapTab')}
+            icon="history"
+            label="History"
+            subtitle="Past Data"
+            color={colors.severity.moderate.accent}
+            onPress={() => navigation.navigate('WeatherHistory')}
           />
         </View>
 
         {/* Forecast */}
-        <Text style={styles.sectionTitle}>5-Day Forecast</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>5-Day Forecast</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -187,13 +227,13 @@ export const DashboardScreen: React.FC = () => {
         {/* AI Insight */}
         <GlassCard style={styles.insightCard}>
           <View style={styles.insightHeader}>
-            <WeatherIcon name="storm" size={18} color={Colors.accent.amber} />
-            <Text style={styles.insightTitle}>AI Safety Insight</Text>
+            <WeatherIcon name="storm" size={18} color={colors.accent.amber} />
+            <Text style={[styles.insightTitle, { color: colors.accent.amber }]}>AI Safety Insight</Text>
           </View>
           {currentRisk?.explanation.map((item, idx) => (
             <View key={idx} style={styles.insightRow}>
-              <View style={styles.insightDot} />
-              <Text style={styles.insightText}>{item}</Text>
+              <View style={[styles.insightDot, { backgroundColor: colors.text.tertiary }]} />
+              <Text style={[styles.insightText, { color: colors.text.secondary }]}>{item}</Text>
             </View>
           ))}
         </GlassCard>
@@ -217,13 +257,11 @@ const styles = StyleSheet.create({
   headerLeft: {},
   greeting: {
     fontSize: FontSize.sm,
-    color: Colors.text.secondary,
     fontWeight: '500',
   },
   userName: {
     fontSize: FontSize.xxl,
     fontWeight: '900',
-    color: Colors.text.primary,
     marginTop: 2,
   },
   locationRow: {
@@ -234,7 +272,6 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: FontSize.xs,
-    color: Colors.accent.cyan,
     fontWeight: '600',
   },
 
@@ -256,7 +293,6 @@ const styles = StyleSheet.create({
   heroLabel: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.text.secondary,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -264,17 +300,14 @@ const styles = StyleSheet.create({
   heroScore: {
     fontSize: FontSize.hero,
     fontWeight: '900',
-    color: Colors.text.primary,
     marginTop: Spacing.sm,
   },
   heroScoreMax: {
     fontSize: FontSize.lg,
     fontWeight: '500',
-    color: Colors.text.tertiary,
   },
   syncText: {
     fontSize: FontSize.xs,
-    color: Colors.text.muted,
     marginTop: Spacing.xs,
   },
 
@@ -282,7 +315,6 @@ const styles = StyleSheet.create({
   factorStrip: {
     marginTop: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.subtle,
     paddingTop: Spacing.md,
   },
   factorItem: {
@@ -295,17 +327,14 @@ const styles = StyleSheet.create({
   },
   factorName: {
     fontSize: FontSize.xs,
-    color: Colors.text.secondary,
     fontWeight: '500',
   },
   factorVal: {
     fontSize: FontSize.xs,
-    color: Colors.text.primary,
     fontWeight: '700',
   },
   factorBarBg: {
     height: 4,
-    backgroundColor: Colors.bg.glass,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -314,11 +343,56 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 
+  // Landslide card
+  landslideCard: {
+    marginBottom: Spacing.xxl,
+  },
+  landslideHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  landslideTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    flex: 1,
+  },
+  landslideChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  landslideChipText: {
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+  },
+  landslideStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  landslideStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  landslideStatLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  landslideStatValue: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  landslideStatDivider: {
+    width: 1,
+    height: 28,
+  },
+
   // Section
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: '800',
-    color: Colors.text.primary,
     marginBottom: Spacing.md,
     letterSpacing: 0.3,
   },
@@ -349,7 +423,6 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.accent.amber,
   },
   insightRow: {
     flexDirection: 'row',
@@ -360,14 +433,12 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: Colors.text.tertiary,
     marginTop: 6,
     marginRight: Spacing.sm,
   },
   insightText: {
     flex: 1,
     fontSize: FontSize.sm,
-    color: Colors.text.secondary,
     lineHeight: 18,
   },
 });

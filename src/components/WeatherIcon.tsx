@@ -1,8 +1,10 @@
 import React from 'react';
 import Svg, { Path, Circle, G, Line, Polyline } from 'react-native-svg';
 
+export type IconName = 'sun' | 'moon' | 'rain' | 'storm' | 'wind' | 'flood' | 'cloud' | 'shield' | 'alert' | 'map' | 'user' | 'settings' | 'bell' | 'logout' | 'edit' | 'check' | 'arrow-right' | 'home' | 'sos' | 'landslide' | 'route' | 'location' | 'history' | 'database';
+
 interface WeatherIconProps {
-  name: 'sun' | 'rain' | 'storm' | 'wind' | 'flood' | 'cloud' | 'shield' | 'alert' | 'map' | 'user' | 'settings' | 'bell' | 'logout' | 'edit' | 'check' | 'arrow-right' | 'home' | 'sos';
+  name: IconName;
   size?: number;
   color?: string;
 }
@@ -20,6 +22,11 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({ name, size = 24, color
         <Line x1="21" y1="12" x2="23" y2="12" stroke={color} strokeWidth="2" strokeLinecap="round" />
         <Line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke={color} strokeWidth="2" strokeLinecap="round" />
         <Line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      </G>
+    ),
+    moon: (
+      <G>
+        <Path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </G>
     ),
     rain: (
@@ -128,6 +135,41 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({ name, size = 24, color
         <Circle cx="12" cy="12" r="10" fill="none" stroke={color} strokeWidth="2" />
         <Line x1="12" y1="8" x2="12" y2="12" stroke={color} strokeWidth="2" strokeLinecap="round" />
         <Circle cx="12" cy="16" r="0.5" fill={color} stroke={color} strokeWidth="1" />
+      </G>
+    ),
+    landslide: (
+      <G>
+        <Path d="M2 22L8 12L14 18L22 6" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M16 6h6v6" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <Line x1="4" y1="18" x2="6" y2="16" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+        <Line x1="6" y1="20" x2="9" y2="17" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+      </G>
+    ),
+    route: (
+      <G>
+        <Circle cx="12" cy="5" r="3" fill="none" stroke={color} strokeWidth="2" />
+        <Line x1="12" y1="8" x2="12" y2="15" stroke={color} strokeWidth="2" strokeLinecap="round" strokeDasharray="2 3" />
+        <Path d="M9 19l3 3 3-3" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <Circle cx="12" cy="22" r="1" fill={color} />
+      </G>
+    ),
+    location: (
+      <G>
+        <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="none" stroke={color} strokeWidth="2" />
+        <Circle cx="12" cy="10" r="3" fill="none" stroke={color} strokeWidth="2" />
+      </G>
+    ),
+    history: (
+      <G>
+        <Circle cx="12" cy="12" r="10" fill="none" stroke={color} strokeWidth="2" />
+        <Polyline points="12 6 12 12 16 14" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </G>
+    ),
+    database: (
+      <G>
+        <Path d="M12 2C6.48 2 2 3.79 2 6v12c0 2.21 4.48 4 10 4s10-1.79 10-4V6c0-2.21-4.48-4-10-4z" fill="none" stroke={color} strokeWidth="2" />
+        <Path d="M2 6c0 2.21 4.48 4 10 4s10-1.79 10-4" fill="none" stroke={color} strokeWidth="2" />
+        <Path d="M2 12c0 2.21 4.48 4 10 4s10-1.79 10-4" fill="none" stroke={color} strokeWidth="2" />
       </G>
     ),
   };

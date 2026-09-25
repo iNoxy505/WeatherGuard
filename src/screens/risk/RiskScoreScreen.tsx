@@ -2,13 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useRiskStore } from '../../state/useRiskStore';
+import { useTheme } from '../../theme/ThemeContext';
 import { RiskGauge } from '../../components/RiskGauge';
 import { RiskBadge } from '../../components/RiskBadge';
 import { GlassCard } from '../../components/GlassCard';
 import { WeatherIcon } from '../../components/WeatherIcon';
-import { Colors, FontSize, Spacing, BorderRadius } from '../../theme/colors';
+import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 
-const SEVERITY_ICON: Record<string, 'sun' | 'wind' | 'storm' | 'alert'> = {
+const SEVERITY_ICON: Record<string, 'sun' | 'wind' | 'storm' | 'alert' | 'landslide'> = {
   LOW: 'sun',
   MODERATE: 'wind',
   HIGH: 'alert',
@@ -17,20 +18,21 @@ const SEVERITY_ICON: Record<string, 'sun' | 'wind' | 'storm' | 'alert'> = {
 
 export const RiskScoreScreen: React.FC = () => {
   const currentRisk = useRiskStore((state) => state.currentRisk);
+  const { colors } = useTheme();
 
   if (!currentRisk) {
     return (
-      <LinearGradient colors={Colors.gradient.primary} style={styles.container}>
+      <LinearGradient colors={colors.gradient.primary} style={styles.container}>
         <View style={styles.centerContainer}>
-          <WeatherIcon name="cloud" size={40} color={Colors.text.tertiary} />
-          <Text style={styles.emptyText}>Telemetry data loading or unavailable.</Text>
+          <WeatherIcon name="cloud" size={40} color={colors.text.tertiary} />
+          <Text style={[styles.emptyText, { color: colors.text.tertiary }]}>Telemetry data loading or unavailable.</Text>
         </View>
       </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient colors={Colors.gradient.primary} style={styles.container}>
+    <LinearGradient colors={colors.gradient.primary} style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Gauge */}
         <View style={styles.gaugeContainer}>
@@ -43,13 +45,13 @@ export const RiskScoreScreen: React.FC = () => {
         {/* Explanation */}
         <GlassCard style={styles.card}>
           <View style={styles.cardTitleRow}>
-            <WeatherIcon name="storm" size={16} color={Colors.accent.amber} />
-            <Text style={styles.cardHeader}>Why is this score calculated?</Text>
+            <WeatherIcon name="storm" size={16} color={colors.accent.amber} />
+            <Text style={[styles.cardHeader, { color: colors.text.primary }]}>Why is this score calculated?</Text>
           </View>
           {currentRisk.explanation.map((item, idx) => (
             <View key={idx} style={styles.bulletRow}>
-              <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>{item}</Text>
+              <View style={[styles.bulletDot, { backgroundColor: colors.text.tertiary }]} />
+              <Text style={[styles.bulletText, { color: colors.text.secondary }]}>{item}</Text>
             </View>
           ))}
         </GlassCard>
@@ -57,24 +59,24 @@ export const RiskScoreScreen: React.FC = () => {
         {/* Factor Breakdown */}
         <GlassCard style={styles.card}>
           <View style={styles.cardTitleRow}>
-            <WeatherIcon name="settings" size={16} color={Colors.accent.cyan} />
-            <Text style={styles.cardHeader}>Sensor Weighting Breakdown</Text>
+            <WeatherIcon name="settings" size={16} color={colors.accent.cyan} />
+            <Text style={[styles.cardHeader, { color: colors.text.primary }]}>Sensor Weighting Breakdown</Text>
           </View>
           {currentRisk.factors.map((factor) => {
-            const icon = SEVERITY_ICON[factor.severity] || 'cloud';
+            const icon = factor.name.includes('Landslide') ? 'landslide' : (SEVERITY_ICON[factor.severity] || 'cloud');
             return (
-              <View key={factor.name} style={styles.factorItem}>
+              <View key={factor.name} style={[styles.factorItem, { borderBottomColor: colors.border.subtle }]}>
                 <View style={styles.factorLeft}>
-                  <View style={styles.factorIcon}>
+                  <View style={[styles.factorIcon, { backgroundColor: colors.bg.glass }]}>
                     <WeatherIcon
-                      name={icon}
+                      name={icon as any}
                       size={14}
-                      color={Colors.severity[factor.severity.toLowerCase() as keyof typeof Colors.severity]?.text || Colors.text.secondary}
+                      color={colors.severity[factor.severity.toLowerCase() as keyof typeof colors.severity]?.text || colors.text.secondary}
                     />
                   </View>
                   <View>
-                    <Text style={styles.factorLabel}>{factor.name}</Text>
-                    <Text style={styles.factorValue}>
+                    <Text style={[styles.factorLabel, { color: colors.text.secondary }]}>{factor.name}</Text>
+                    <Text style={[styles.factorValue, { color: colors.text.primary }]}>
                       {factor.value} {factor.unit}
                     </Text>
                   </View>
@@ -84,6 +86,42 @@ export const RiskScoreScreen: React.FC = () => {
             );
           })}
         </GlassCard>
+
+        {/* Landslide Deep Dive */}
+        {currentRisk.landslideRisk && (
+          <GlassCard style={styles.card} glowColor={
+            colors.severity[currentRisk.landslideRisk.prediction.toLowerCase() as keyof typeof colors.severity]?.accent
+          }>
+            <View style={styles.cardTitleRow}>
+              <WeatherIcon name="landslide" size={16} color={colors.severity[currentRisk.landslideRisk.prediction.toLowerCase() as keyof typeof colors.severity]?.text || colors.accent.amber} />
+              <Text style={[styles.cardHeader, { color: colors.text.primary }]}>Landslide Risk Analysis</Text>
+            </View>
+
+            <View style={styles.lsStatsRow}>
+              <View style={styles.lsStat}>
+                <Text style={[styles.lsStatBig, { color: colors.severity[currentRisk.landslideRisk.prediction.toLowerCase() as keyof typeof colors.severity]?.text }]}>
+                  {currentRisk.landslideRisk.probability}%
+                </Text>
+                <Text style={[styles.lsStatLabel, { color: colors.text.tertiary }]}>Probability</Text>
+              </View>
+              <View style={styles.lsStat}>
+                <Text style={[styles.lsStatBig, { color: colors.text.primary }]}>{currentRisk.landslideRisk.slopeAngle}°</Text>
+                <Text style={[styles.lsStatLabel, { color: colors.text.tertiary }]}>Slope</Text>
+              </View>
+              <View style={styles.lsStat}>
+                <Text style={[styles.lsStatBig, { color: colors.text.primary }]}>{currentRisk.landslideRisk.triggerThreshold}mm</Text>
+                <Text style={[styles.lsStatLabel, { color: colors.text.tertiary }]}>Trigger</Text>
+              </View>
+            </View>
+
+            {currentRisk.landslideRisk.factors.map((f, idx) => (
+              <View key={idx} style={styles.bulletRow}>
+                <View style={[styles.bulletDot, { backgroundColor: colors.text.tertiary }]} />
+                <Text style={[styles.bulletText, { color: colors.text.secondary }]}>{f}</Text>
+              </View>
+            ))}
+          </GlassCard>
+        )}
       </ScrollView>
     </LinearGradient>
   );
@@ -99,7 +137,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     gap: Spacing.md,
   },
-  emptyText: { color: Colors.text.tertiary, fontSize: FontSize.md },
+  emptyText: { fontSize: FontSize.md },
 
   gaugeContainer: { marginVertical: Spacing.xxl, alignItems: 'center' },
   badgeWrapper: { marginTop: Spacing.lg },
@@ -117,7 +155,6 @@ const styles = StyleSheet.create({
   cardHeader: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text.primary,
   },
   bulletRow: {
     flexDirection: 'row',
@@ -128,14 +165,12 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: Colors.text.tertiary,
     marginTop: 6,
     marginRight: Spacing.sm,
   },
   bulletText: {
     flex: 1,
     fontSize: FontSize.sm,
-    color: Colors.text.secondary,
     lineHeight: 20,
   },
 
@@ -145,7 +180,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.subtle,
   },
   factorLeft: {
     flexDirection: 'row',
@@ -156,19 +190,35 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.bg.glass,
     alignItems: 'center',
     justifyContent: 'center',
   },
   factorLabel: {
     fontSize: FontSize.sm,
-    color: Colors.text.secondary,
     fontWeight: '500',
   },
   factorValue: {
     fontSize: FontSize.md,
-    color: Colors.text.primary,
     fontWeight: '700',
+    marginTop: 2,
+  },
+
+  // Landslide section
+  lsStatsRow: {
+    flexDirection: 'row',
+    marginBottom: Spacing.lg,
+  },
+  lsStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  lsStatBig: {
+    fontSize: FontSize.xxl,
+    fontWeight: '900',
+  },
+  lsStatLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: '500',
     marginTop: 2,
   },
 });

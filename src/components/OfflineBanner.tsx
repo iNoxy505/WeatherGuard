@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, FontSize, Spacing } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { FontSize, Spacing } from '../theme/colors';
 
 export const OfflineBanner: React.FC = () => {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.banner}>
-      <View style={styles.indicator} />
-      <Text style={styles.text}>
+      <View style={[styles.indicator, { backgroundColor: colors.status.offline }]} />
+      <Text style={[styles.text, { color: colors.accent.amber }]}>
         Operating Offline · Using last synced cache & SMS emergency dispatch
       </Text>
     </View>
@@ -28,11 +31,9 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: Colors.status.offline,
     marginRight: Spacing.sm,
   },
   text: {
-    color: Colors.accent.amber,
     fontSize: FontSize.xs,
     fontWeight: '600',
     letterSpacing: 0.2,

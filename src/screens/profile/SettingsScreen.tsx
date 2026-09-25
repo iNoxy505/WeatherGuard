@@ -2,15 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuthStore } from '../../state/useAuthStore';
+import { useThemeStore } from '../../state/useThemeStore';
+import { useTheme } from '../../theme/ThemeContext';
 import { databaseService } from '../../services/database/DatabaseService';
 import { GlassCard } from '../../components/GlassCard';
 import { WeatherIcon } from '../../components/WeatherIcon';
-import { Colors, FontSize, Spacing, BorderRadius } from '../../theme/colors';
+import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 
 export const SettingsScreen: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+  const { colors, isDark } = useTheme();
+  const themeToggle = useThemeStore((state) => state.toggleTheme);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
   const [alertSound, setAlertSound] = useState(true);
 
   useEffect(() => {
@@ -22,7 +25,6 @@ export const SettingsScreen: React.FC = () => {
     const settings = await databaseService.getSettings(user.id);
     if (settings) {
       setNotificationsEnabled(settings.notifications_enabled === 1);
-      setDarkMode(settings.dark_mode === 1);
       setAlertSound(settings.alert_sound === 1);
     }
   };
@@ -40,7 +42,7 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const toggleDarkMode = (val: boolean) => {
-    setDarkMode(val);
+    themeToggle();
     updateSetting('dark_mode', val);
   };
 
@@ -50,88 +52,90 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient colors={Colors.gradient.primary} style={styles.container}>
+    <LinearGradient colors={colors.gradient.primary} style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
+        <Text style={[styles.sectionLabel, { color: colors.text.tertiary }]}>NOTIFICATIONS</Text>
 
         <GlassCard style={styles.settingCard}>
           <View style={styles.settingRow}>
-            <View style={styles.settingIcon}>
-              <WeatherIcon name="bell" size={18} color={Colors.accent.cyan} />
+            <View style={[styles.settingIcon, { backgroundColor: colors.bg.glass }]}>
+              <WeatherIcon name="bell" size={18} color={colors.accent.cyan} />
             </View>
             <View style={styles.settingText}>
-              <Text style={styles.settingLabel}>Push Notifications</Text>
-              <Text style={styles.settingDesc}>Receive weather alerts and updates</Text>
+              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>Push Notifications</Text>
+              <Text style={[styles.settingDesc, { color: colors.text.tertiary }]}>Receive weather alerts and updates</Text>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={toggleNotifications}
-              trackColor={{ false: Colors.bg.input, true: Colors.accent.cyanGlow }}
-              thumbColor={notificationsEnabled ? Colors.accent.cyan : Colors.text.muted}
+              trackColor={{ false: colors.bg.input, true: colors.accent.cyanGlow }}
+              thumbColor={notificationsEnabled ? colors.accent.cyan : colors.text.muted}
             />
           </View>
         </GlassCard>
 
         <GlassCard style={styles.settingCard}>
           <View style={styles.settingRow}>
-            <View style={styles.settingIcon}>
-              <WeatherIcon name="alert" size={18} color={Colors.accent.amber} />
+            <View style={[styles.settingIcon, { backgroundColor: colors.bg.glass }]}>
+              <WeatherIcon name="alert" size={18} color={colors.accent.amber} />
             </View>
             <View style={styles.settingText}>
-              <Text style={styles.settingLabel}>Alert Sound</Text>
-              <Text style={styles.settingDesc}>Play sound for critical alerts</Text>
+              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>Alert Sound</Text>
+              <Text style={[styles.settingDesc, { color: colors.text.tertiary }]}>Play sound for critical alerts</Text>
             </View>
             <Switch
               value={alertSound}
               onValueChange={toggleAlertSound}
-              trackColor={{ false: Colors.bg.input, true: Colors.accent.amberGlow }}
-              thumbColor={alertSound ? Colors.accent.amber : Colors.text.muted}
+              trackColor={{ false: colors.bg.input, true: colors.accent.amberGlow }}
+              thumbColor={alertSound ? colors.accent.amber : colors.text.muted}
             />
           </View>
         </GlassCard>
 
-        <Text style={styles.sectionLabel}>DISPLAY</Text>
+        <Text style={[styles.sectionLabel, { color: colors.text.tertiary }]}>DISPLAY</Text>
 
         <GlassCard style={styles.settingCard}>
           <View style={styles.settingRow}>
-            <View style={styles.settingIcon}>
-              <WeatherIcon name="sun" size={18} color={Colors.accent.cyan} />
+            <View style={[styles.settingIcon, { backgroundColor: colors.bg.glass }]}>
+              <WeatherIcon name={isDark ? 'moon' : 'sun'} size={18} color={colors.accent.cyan} />
             </View>
             <View style={styles.settingText}>
-              <Text style={styles.settingLabel}>Dark Mode</Text>
-              <Text style={styles.settingDesc}>Use dark theme (recommended)</Text>
+              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>Dark Mode</Text>
+              <Text style={[styles.settingDesc, { color: colors.text.tertiary }]}>
+                {isDark ? 'Dark theme active' : 'Light theme active'}
+              </Text>
             </View>
             <Switch
-              value={darkMode}
+              value={isDark}
               onValueChange={toggleDarkMode}
-              trackColor={{ false: Colors.bg.input, true: Colors.accent.cyanGlow }}
-              thumbColor={darkMode ? Colors.accent.cyan : Colors.text.muted}
+              trackColor={{ false: colors.bg.input, true: colors.accent.cyanGlow }}
+              thumbColor={isDark ? colors.accent.cyan : colors.text.muted}
             />
           </View>
         </GlassCard>
 
-        <Text style={styles.sectionLabel}>DATA & PRIVACY</Text>
+        <Text style={[styles.sectionLabel, { color: colors.text.tertiary }]}>DATA & PRIVACY</Text>
 
         <GlassCard style={styles.settingCard}>
           <View style={styles.settingRow}>
-            <View style={styles.settingIcon}>
-              <WeatherIcon name="shield" size={18} color={Colors.severity.low.text} />
+            <View style={[styles.settingIcon, { backgroundColor: colors.bg.glass }]}>
+              <WeatherIcon name="shield" size={18} color={colors.severity.low.text} />
             </View>
             <View style={styles.settingText}>
-              <Text style={styles.settingLabel}>Data Stored Locally</Text>
-              <Text style={styles.settingDesc}>All account data is stored securely on your device using SQLite encryption</Text>
+              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>Data Stored Locally</Text>
+              <Text style={[styles.settingDesc, { color: colors.text.tertiary }]}>All account data is stored securely on your device using SQLite encryption</Text>
             </View>
           </View>
         </GlassCard>
 
         <GlassCard style={styles.settingCard}>
           <View style={styles.settingRow}>
-            <View style={styles.settingIcon}>
-              <WeatherIcon name="map" size={18} color={Colors.text.tertiary} />
+            <View style={[styles.settingIcon, { backgroundColor: colors.bg.glass }]}>
+              <WeatherIcon name="location" size={18} color={colors.text.tertiary} />
             </View>
             <View style={styles.settingText}>
-              <Text style={styles.settingLabel}>Location Services</Text>
-              <Text style={styles.settingDesc}>GPS is used only for SOS dispatch and never stored remotely</Text>
+              <Text style={[styles.settingLabel, { color: colors.text.primary }]}>Location Services</Text>
+              <Text style={[styles.settingDesc, { color: colors.text.tertiary }]}>GPS is used for map positioning, safe exit routing, and SOS dispatch</Text>
             </View>
           </View>
         </GlassCard>
@@ -147,7 +151,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: FontSize.xs,
     fontWeight: '800',
-    color: Colors.text.tertiary,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     marginTop: Spacing.lg,
@@ -164,7 +167,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.bg.glass,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,
@@ -175,11 +177,9 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: FontSize.md,
     fontWeight: '700',
-    color: Colors.text.primary,
   },
   settingDesc: {
     fontSize: FontSize.xs,
-    color: Colors.text.tertiary,
     marginTop: 2,
     lineHeight: 16,
   },

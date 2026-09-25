@@ -18,6 +18,14 @@ export interface TelemetrySnapshot {
   factors: FactorTelemetry[];
   explanation: string[];
   computedAt: string;
+  landslideRisk?: {
+    probability: number;       // 0-100%
+    slopeAngle: number;        // degrees
+    soilType: string;
+    triggerThreshold: number;   // mm of rain that could trigger
+    prediction: SeverityBand;
+    factors: string[];
+  };
 }
 
 interface RiskStoreState {
@@ -41,12 +49,27 @@ const DEFAULT_FALLBACK_RISK: TelemetrySnapshot = {
     { name: 'Soil Saturation', value: 42, unit: '%', severity: 'LOW' },
     { name: 'River Level', value: 1.8, unit: 'm', severity: 'MODERATE' },
     { name: 'Wind Velocity', value: 38, unit: 'km/h', severity: 'LOW' },
+    { name: 'Landslide Risk', value: 18, unit: '%', severity: 'LOW' },
   ],
   explanation: [
     'Precipitation levels remain well below seasonal saturation thresholds.',
     'Soil runoff channels are operating at adequate absorptive capacity.',
+    'Landslide probability is low — slope stability is within safe parameters.',
   ],
   computedAt: new Date().toISOString(),
+  landslideRisk: {
+    probability: 18,
+    slopeAngle: 32,
+    soilType: 'laterite',
+    triggerThreshold: 85,
+    prediction: 'LOW',
+    factors: [
+      'Current soil saturation at 42% — well below critical 80% threshold',
+      'No sustained heavy rainfall in the past 48 hours',
+      'Slope angle of 32° is within moderate risk range but stable at current moisture levels',
+      'Historical pattern shows landslide events require >100mm rainfall when soil is pre-saturated',
+    ],
+  },
 };
 
 export const useRiskStore = create<RiskStoreState>((set, get) => ({

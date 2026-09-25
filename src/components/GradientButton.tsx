@@ -8,7 +8,8 @@ import {
   TextStyle,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Colors, BorderRadius, FontSize, Spacing } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { BorderRadius, FontSize, Spacing } from '../theme/colors';
 
 interface GradientButtonProps {
   title: string;
@@ -22,12 +23,6 @@ interface GradientButtonProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-const GRADIENT_MAP = {
-  primary: Colors.gradient.accent,
-  danger: Colors.gradient.danger,
-  warm: Colors.gradient.warm,
-};
-
 export const GradientButton: React.FC<GradientButtonProps> = ({
   title,
   onPress,
@@ -39,23 +34,30 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   icon,
   size = 'medium',
 }) => {
+  const { colors } = useTheme();
   const isOutline = variant === 'outline';
   const sizeStyle = styles[size];
+
+  const gradientMap: Record<string, string[]> = {
+    primary: colors.gradient.accent,
+    danger: colors.gradient.danger,
+    warm: colors.gradient.warm,
+  };
 
   if (isOutline) {
     return (
       <TouchableOpacity
-        style={[styles.outlineButton, sizeStyle, disabled && styles.disabled, style]}
+        style={[styles.outlineButton, { borderColor: colors.accent.cyan }, sizeStyle, disabled && styles.disabled, style]}
         onPress={onPress}
         disabled={disabled || loading}
         activeOpacity={0.7}
       >
         {loading ? (
-          <ActivityIndicator color={Colors.accent.cyan} size="small" />
+          <ActivityIndicator color={colors.accent.cyan} size="small" />
         ) : (
           <>
             {icon}
-            <Text style={[styles.outlineText, textStyle]}>{title}</Text>
+            <Text style={[styles.outlineText, { color: colors.accent.cyan }, textStyle]}>{title}</Text>
           </>
         )}
       </TouchableOpacity>
@@ -70,7 +72,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
       style={[disabled && styles.disabled, style]}
     >
       <LinearGradient
-        colors={GRADIENT_MAP[variant] || GRADIENT_MAP.primary}
+        colors={gradientMap[variant] || gradientMap.primary}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={[styles.gradient, sizeStyle]}
@@ -116,13 +118,11 @@ const styles = StyleSheet.create({
   outlineButton: {
     borderRadius: BorderRadius.md,
     borderWidth: 1.5,
-    borderColor: Colors.accent.cyan,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
   outlineText: {
-    color: Colors.accent.cyan,
     fontSize: FontSize.md,
     fontWeight: '700',
     letterSpacing: 0.3,
