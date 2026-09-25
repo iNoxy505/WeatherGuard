@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, FontSize } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { FontSize } from '../theme/colors';
 
 interface AvatarCircleProps {
   name: string;
@@ -11,8 +12,11 @@ interface AvatarCircleProps {
 export const AvatarCircle: React.FC<AvatarCircleProps> = ({
   name,
   size = 48,
-  color = Colors.accent.cyan,
+  color,
 }) => {
+  const { colors } = useTheme();
+  const avatarColor = color || colors.accent.cyan;
+  
   const initials = name
     .split(' ')
     .map((word) => word[0])
@@ -28,7 +32,7 @@ export const AvatarCircle: React.FC<AvatarCircleProps> = ({
           width: size,
           height: size,
           borderRadius: size / 2,
-          borderColor: color,
+          borderColor: avatarColor,
         },
       ]}
     >
@@ -39,7 +43,7 @@ export const AvatarCircle: React.FC<AvatarCircleProps> = ({
             width: size - 4,
             height: size - 4,
             borderRadius: (size - 4) / 2,
-            backgroundColor: `${color}22`,
+            backgroundColor: `${avatarColor}22`,
           },
         ]}
       >
@@ -48,7 +52,7 @@ export const AvatarCircle: React.FC<AvatarCircleProps> = ({
             styles.initials,
             {
               fontSize: size * 0.35,
-              color: color,
+              color: avatarColor,
             },
           ]}
         >
