@@ -45,9 +45,21 @@ export const RiskScoreScreen: React.FC = () => {
         {/* Explanation */}
         <GlassCard style={styles.card}>
           <View style={styles.cardTitleRow}>
-            <WeatherIcon name="storm" size={16} color={colors.accent.amber} />
-            <Text style={[styles.cardHeader, { color: colors.text.primary }]}>Why is this score calculated?</Text>
+            <WeatherIcon name="database" size={16} color={colors.accent.amber} />
+            <Text style={[styles.cardHeader, { color: colors.text.primary }]}>Multi-Source ML Pipeline Analysis</Text>
           </View>
+          
+          {/* Models Used Pill */}
+          {currentRisk.mlModelsUsed && (
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12}}>
+              {currentRisk.mlModelsUsed.map((m) => (
+                <View key={m} style={[styles.modelPill, { backgroundColor: colors.bg.glass, borderColor: colors.border.subtle }]}>
+                  <Text style={{color: colors.text.secondary, fontSize: 10, fontWeight: '700'}}>{m}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
           {currentRisk.explanation.map((item, idx) => (
             <View key={idx} style={styles.bulletRow}>
               <View style={[styles.bulletDot, { backgroundColor: colors.text.tertiary }]} />
@@ -55,6 +67,37 @@ export const RiskScoreScreen: React.FC = () => {
             </View>
           ))}
         </GlassCard>
+
+        {/* Temporal Water Level Trend (LSTM Simulation) */}
+        {currentRisk.waterLevelTrend && (
+          <GlassCard style={styles.card}>
+             <View style={styles.cardTitleRow}>
+              <WeatherIcon name="rain" size={16} color={colors.accent.cyan} />
+              <Text style={[styles.cardHeader, { color: colors.text.primary }]}>LSTM Water Level Trend & Forecast</Text>
+            </View>
+            <View style={styles.trendGraph}>
+              {currentRisk.waterLevelTrend.history.map((val, idx) => {
+                const height = Math.min((val / 5) * 100, 100); // 5m max
+                return (
+                  <View key={`hist-${idx}`} style={styles.barWrapper}>
+                    <View style={[styles.trendBar, { height: `${height}%`, backgroundColor: colors.accent.cyan }]} />
+                    <Text style={[styles.barLabel, { color: colors.text.tertiary }]}>{currentRisk.waterLevelTrend!.timestamps[idx]}</Text>
+                  </View>
+                );
+              })}
+              {/* Forecast (Dashed or red/orange to indicate prediction) */}
+              {currentRisk.waterLevelTrend.forecast.map((val, idx) => {
+                const height = Math.min((val / 5) * 100, 100);
+                return (
+                  <View key={`fore-${idx}`} style={styles.barWrapper}>
+                    <View style={[styles.trendBar, { height: `${height}%`, backgroundColor: colors.severity.critical.bg, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.severity.critical.text }]} />
+                    <Text style={[styles.barLabel, { color: colors.severity.critical.text, fontWeight: '700' }]}>+{(idx+1)}h</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </GlassCard>
+        )}
 
         {/* Factor Breakdown */}
         <GlassCard style={styles.card}>
@@ -172,6 +215,38 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSize.sm,
     lineHeight: 20,
+  },
+  modelPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  trendGraph: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 120,
+    marginTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  barWrapper: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    height: '100%',
+    width: 30,
+  },
+  trendBar: {
+    width: 12,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  barLabel: {
+    fontSize: 10,
+    position: 'absolute',
+    bottom: -15,
   },
 
   factorItem: {

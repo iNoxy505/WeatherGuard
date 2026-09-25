@@ -12,6 +12,7 @@ import { FontSize } from './theme/colors';
 import { WelcomeScreen } from './screens/auth/WelcomeScreen';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { SignUpScreen } from './screens/auth/SignUpScreen';
+import { ForgotPasswordScreen } from './screens/auth/ForgotPasswordScreen';
 
 // Main screens
 import { DashboardScreen } from './screens/home/DashboardScreen';
@@ -30,6 +31,7 @@ export type AuthStackParamList = {
   Welcome: undefined;
   Login: undefined;
   SignUp: undefined;
+  ForgotPassword: undefined;
 };
 
 export type RootStackParamList = {
@@ -123,6 +125,7 @@ function AuthNavigator() {
       <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="SignUp" component={SignUpScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </AuthStack.Navigator>
   );
 }

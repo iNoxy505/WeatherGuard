@@ -1,39 +1,69 @@
 import { create } from 'zustand';
 import Geolocation from '@react-native-community/geolocation';
 
+// Default to Shimla, Himachal Pradesh, NW India
+// Used as fallback for emulators without GPS
+const SHIMLA_LAT = 31.1048;
+const SHIMLA_LNG = 77.1734;
+
 interface LocationState {
-  latitude: number | null;
-  longitude: number | null;
+  latitude: number;
+  longitude: number;
   isLocating: boolean;
   error: string | null;
   watchId: number | null;
+  isUsingDefault: boolean;
   fetchLocation: () => void;
   startWatching: () => void;
   stopWatching: () => void;
 }
 
 export const useLocationStore = create<LocationState>((set, get) => ({
-  latitude: null,
-  longitude: null,
+  // Pre-locate to Shimla by default (emulator-safe)
+  latitude: SHIMLA_LAT,
+  longitude: SHIMLA_LNG,
   isLocating: false,
   error: null,
   watchId: null,
+  isUsingDefault: true,
 
   fetchLocation: () => {
     set({ isLocating: true, error: null });
+
+    // Add manual timeout to force fallback on emulators where Geolocation hangs
+    const timeoutId = setTimeout(() => {
+      set({
+        latitude: SHIMLA_LAT,
+        longitude: SHIMLA_LNG,
+        isLocating: false,
+        isUsingDefault: true,
+        error: null,
+      });
+    }, 2000);
+
     Geolocation.getCurrentPosition(
       (pos) => {
+        clearTimeout(timeoutId);
         set({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           isLocating: false,
+          isUsingDefault: false,
           error: null,
         });
       },
-      (err) => {
-        set({ isLocating: false, error: err.message });
+      (_err) => {
+        clearTimeout(timeoutId);
+        // On failure (emulator, no GPS, timeout), keep Shimla defaults
+        set({
+          latitude: SHIMLA_LAT,
+          longitude: SHIMLA_LNG,
+          isLocating: false,
+          isUsingDefault: true,
+          error: null, // don't show error — Shimla fallback is intentional
+        });
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
     );
   },
 
@@ -46,13 +76,14 @@ export const useLocationStore = create<LocationState>((set, get) => ({
         set({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
+          isUsingDefault: false,
           error: null,
         });
       },
-      (err) => {
-        set({ error: err.message });
+      (_err) => {
+        // Keep current position on watch errors
       },
-      { enableHighAccuracy: true, distanceFilter: 10 }
+      { enableHighAccuracy: false, distanceFilter: 10 }
     );
     set({ watchId: id });
   },

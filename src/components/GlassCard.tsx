@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { StyleSheet, ViewStyle } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 import { BorderRadius, Spacing } from '../theme/colors';
 
@@ -16,30 +17,39 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   glowColor,
   noPadding = false,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
-    <View
+    <LinearGradient
+      colors={colors.gradient.card}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={[
+        styles.base,
         {
-          backgroundColor: colors.bg.glass,
           borderRadius: BorderRadius.lg,
           borderWidth: 1,
-          borderColor: colors.bg.glassBorder,
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.8)',
           ...colors.shadow.card,
         },
         !noPadding && { padding: Spacing.lg },
         glowColor ? {
           borderColor: glowColor,
           shadowColor: glowColor,
-          shadowOpacity: 0.2,
-          shadowRadius: 12,
-          elevation: 6,
+          shadowOpacity: isDark ? 0.3 : 0.4,
+          shadowRadius: 15,
+          elevation: 8,
         } : undefined,
         style,
       ]}
     >
       {children}
-    </View>
+    </LinearGradient>
   );
 };
+
+const styles = StyleSheet.create({
+  base: {
+    overflow: 'hidden',
+  }
+});

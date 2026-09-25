@@ -30,6 +30,8 @@ export const EditProfileScreen: React.FC = () => {
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [avatarColor, setAvatarColor] = useState(user?.avatarColor || colors.accent.cyan);
+  const [aadhaar, setAadhaar] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -117,6 +119,30 @@ export const EditProfileScreen: React.FC = () => {
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.text.secondary }]}>Aadhaar Verification</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.bg.input, borderColor: isVerified ? colors.status.success : colors.border.subtle }]}>
+              <WeatherIcon name="shield" size={16} color={isVerified ? colors.status.success : colors.text.tertiary} />
+              <TextInput
+                style={[styles.input, { color: colors.text.primary }]}
+                value={aadhaar}
+                onChangeText={(t) => {
+                  const cleaned = t.replace(/[^0-9]/g, '').slice(0, 12);
+                  setAadhaar(cleaned);
+                  if (cleaned.length === 12) {
+                    setIsVerified(true);
+                  } else {
+                    setIsVerified(false);
+                  }
+                }}
+                placeholder="12-digit Aadhaar Number"
+                placeholderTextColor={colors.text.muted}
+                keyboardType="numeric"
+              />
+              {isVerified && <Text style={{ color: colors.status.success, fontWeight: '700', fontSize: FontSize.xs }}>VERIFIED</Text>}
             </View>
           </View>
 

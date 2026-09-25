@@ -1,521 +1,654 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import Svg, { Rect, Circle as SvgCircle, Text as SvgText, Path as SvgPath, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import MapView, { Marker, Polyline, Polygon, Circle, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useTheme } from '../../theme/ThemeContext';
-import { BackgroundPattern } from '../../components/BackgroundPattern';
 import { GlassCard } from '../../components/GlassCard';
 import { WeatherIcon } from '../../components/WeatherIcon';
 import { useLocationStore } from '../../state/useLocationStore';
-import { EVACUATION_ROUTES, getNearestRoute, getRoutePathD, EvacuationRoute } from '../../data/evacuationRoutes';
+import { useMapLayerStore } from '../../state/useMapLayerStore';
+import { LayerControlPanel } from '../../components/map/LayerControlPanel';
+import { TimelineSlider } from '../../components/map/TimelineSlider';
+import { ZoneDetailPopup } from '../../components/map/ZoneDetailPopup';
 import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 
-const { width } = Dimensions.get('window');
-const MAP_WIDTH = width - 32;
-const MAP_HEIGHT = 320;
+import {
+  SHIMLA_REGION,
+  FLOOD_ZONES,
+  LANDSLIDE_ZONES,
+  SAFETY_POINTS,
+  SENSOR_POINTS,
+  RAIN_CELLS,
+  CLOUD_REGIONS,
+  ROAD_SEGMENTS,
+  RIVER_SEGMENTS,
+  GEO_EVAC_ROUTES,
+  FORECAST_FRAMES,
+  HISTORICAL_FRAMES,
+  RISK_FILL_COLORS,
+  RISK_STROKE_COLORS,
+  RAIN_INTENSITY_COLOR,
+  ROAD_CONDITION_COLORS,
+  SAFETY_POINT_COLORS,
+  RiskZone,
+  RiskLevel,
+} from '../../data/gisData';
 
-interface Zone {
-  id: string;
-  name: string;
-  risk: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
-  landslideRisk: number; // 0-100
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
+const { width, height } = Dimensions.get('window');
 
-const ZONES: Zone[] = [
-  { id: 'z1', name: 'Ward 1', risk: 'LOW', landslideRisk: 12, x: 10, y: 10, w: 120, h: 90 },
-  { id: 'z2', name: 'Ward 2', risk: 'MODERATE', landslideRisk: 35, x: 140, y: 10, w: 110, h: 90 },
-  { id: 'z3', name: 'Ward 3', risk: 'HIGH', landslideRisk: 72, x: 260, y: 10, w: 80, h: 90 },
-  { id: 'z4', name: 'Market Area', risk: 'LOW', landslideRisk: 5, x: 10, y: 110, w: 100, h: 100 },
-  { id: 'z5', name: 'River Bank', risk: 'CRITICAL', landslideRisk: 88, x: 120, y: 110, w: 130, h: 100 },
-  { id: 'z6', name: 'Hilltop', risk: 'MODERATE', landslideRisk: 45, x: 260, y: 110, w: 80, h: 100 },
-  { id: 'z7', name: 'School Zone', risk: 'LOW', landslideRisk: 8, x: 10, y: 220, w: 140, h: 80 },
-  { id: 'z8', name: 'Relief Center', risk: 'LOW', landslideRisk: 3, x: 160, y: 220, w: 180, h: 80 },
+// ─── DARK MAP STYLE ──────────────────────────────────
+const darkMapStyle = [
+  { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#515c6d' }] },
+  { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#17263c' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#212a37' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2f3948' }] },
 ];
 
-const ROAD_CONDITION_COLORS: Record<string, string> = {
-  CLEAR: '#4ADE80',
-  MODERATE: '#FACC15',
-  BLOCKED: '#F87171',
+// ─── SAFETY POINT MARKER EMOJI ───────────────────────
+const SAFETY_EMOJI: Record<string, string> = {
+  shelter: '🏠',
+  hospital: '🏥',
+  relief_center: '⛑️',
+  school: '🏫',
 };
 
+// ─── SENSOR MARKER EMOJI ─────────────────────────────
+const SENSOR_EMOJI: Record<string, string> = {
+  rain: '🌧️',
+  water_level: '🌊',
+  soil: '🌱',
+};
+
+// ─── MAIN COMPONENT ─────────────────────────────────
 export const MapViewScreen: React.FC = () => {
   const { colors, isDark } = useTheme();
   const { latitude, longitude, isLocating, fetchLocation } = useLocationStore();
-  const [selectedZone, setSelectedZone] = useState<string | null>(null);
-  const [showRoutes, setShowRoutes] = useState(false);
-  const [activeRoute, setActiveRoute] = useState<EvacuationRoute | null>(null);
+  const {
+    mapMode,
+    mapStyle,
+    timeMode,
+    timelineHour,
+    layers,
+    isLayerPanelOpen,
+    toggleLayerPanel,
+    selectedZoneId,
+    setSelectedZoneId,
+  } = useMapLayerStore();
 
-  const RISK_COLORS: Record<string, string> = {
-    LOW: isDark ? 'rgba(74, 222, 128, 0.3)' : 'rgba(22, 163, 74, 0.15)',
-    MODERATE: isDark ? 'rgba(250, 204, 21, 0.3)' : 'rgba(202, 138, 4, 0.15)',
-    HIGH: isDark ? 'rgba(251, 146, 60, 0.35)' : 'rgba(234, 88, 12, 0.15)',
-    CRITICAL: isDark ? 'rgba(248, 113, 113, 0.4)' : 'rgba(220, 38, 38, 0.15)',
+  const mapRef = useRef<MapView>(null);
+
+  // Helper: check if a layer is enabled
+  const isLayerOn = (id: string) => layers.find((l) => l.id === id)?.enabled ?? false;
+
+  // ─── TIME-DEPENDENT RISK LEVELS ─────────────
+  const getTimeAdjustedRisk = (zoneId: string, type: 'flood' | 'landslide'): RiskLevel | null => {
+    if (timeMode === 'CURRENT') return null; // use zone's default
+    const frames = timeMode === 'FORECAST' ? FORECAST_FRAMES : HISTORICAL_FRAMES;
+    const idx = Math.min(Math.abs(timelineHour), frames.length - 1);
+    const frame = frames[idx];
+    const riskMap = type === 'flood' ? frame.floodRisk : frame.landslideRisk;
+    return (riskMap[zoneId] as RiskLevel) ?? null;
   };
 
-  const RISK_STROKE: Record<string, string> = {
-    LOW: colors.severity.low.text,
-    MODERATE: colors.severity.moderate.text,
-    HIGH: colors.severity.high.text,
-    CRITICAL: colors.severity.critical.text,
-  };
+  // ─── SELECTED ZONE DATA ─────────────────────
+  const selectedZone: RiskZone | null = useMemo(() => {
+    if (!selectedZoneId) return null;
+    return (
+      FLOOD_ZONES.find((z) => z.id === selectedZoneId) ||
+      LANDSLIDE_ZONES.find((z) => z.id === selectedZoneId) ||
+      null
+    );
+  }, [selectedZoneId]);
 
   useEffect(() => {
     fetchLocation();
   }, []);
 
-  // Map real GPS to SVG coordinates (rough approximation for demo)
-  const userMarkerX = latitude ? 185 + ((longitude || 0) % 1) * 100 : 185;
-  const userMarkerY = latitude ? 155 + ((latitude || 0) % 1) * 50 : 155;
-
-  const findUserZone = (): string | null => {
-    // Simple check: which zone rectangle contains the user marker
-    for (const zone of ZONES) {
-      if (
-        userMarkerX >= zone.x &&
-        userMarkerX <= zone.x + zone.w &&
-        userMarkerY >= zone.y &&
-        userMarkerY <= zone.y + zone.h
-      ) {
-        return zone.id;
-      }
-    }
-    return 'z5'; // Default to River Bank for demo
-  };
-
-  const handleSafeExit = () => {
-    const userZone = findUserZone() || 'z5';
-    const route = getNearestRoute(userZone);
-    if (route) {
-      setActiveRoute(route);
-      setShowRoutes(true);
+  const handleLocateMe = () => {
+    fetchLocation();
+    if (latitude && longitude && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      });
+    } else {
+      mapRef.current?.animateToRegion(SHIMLA_REGION);
     }
   };
 
+  // ─── RENDER ────────────────────────────────────
   return (
-    <LinearGradient colors={colors.gradient.primary} style={styles.container}>
-      <BackgroundPattern isDark={isDark} variant="grid" />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.title, { color: colors.text.primary }]}>Zone Risk Map</Text>
-            <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-              {latitude ? `GPS: ${latitude.toFixed(4)}, ${longitude?.toFixed(4)}` : 'Visualize safety levels across zones'}
-            </Text>
-          </View>
-          <View style={[styles.headerIcon, { backgroundColor: colors.accent.cyanGlow }]}>
-            <WeatherIcon name="map" size={22} color={colors.accent.cyan} />
-          </View>
-        </View>
+    <View style={styles.container}>
+      {/* ═══ MAP ═══ */}
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        mapType={mapStyle}
+        initialRegion={SHIMLA_REGION}
+        customMapStyle={isDark ? darkMapStyle : undefined}
+        pitchEnabled={mapMode === '3D'}
+        rotateEnabled={mapMode === '3D'}
+        camera={
+          mapMode === '3D'
+            ? {
+                center: { latitude: SHIMLA_REGION.latitude, longitude: SHIMLA_REGION.longitude },
+                pitch: 55,
+                heading: 30,
+                altitude: 3000,
+                zoom: 14,
+              }
+            : undefined
+        }
+      >
+        {/* ── RAIN LAYER ──────────────────── */}
+        {isLayerOn('rain') &&
+          RAIN_CELLS.map((cell) => (
+            <Circle
+              key={cell.id}
+              center={cell.coordinate}
+              radius={cell.radius_m}
+              fillColor={RAIN_INTENSITY_COLOR(cell.intensity_mm_hr)}
+              strokeColor="transparent"
+            />
+          ))}
 
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: colors.accent.cyanGlow, borderColor: colors.accent.cyan }]}
-            onPress={fetchLocation}
-            disabled={isLocating}
-          >
-            {isLocating ? (
-              <ActivityIndicator size="small" color={colors.accent.cyan} />
-            ) : (
-              <WeatherIcon name="location" size={16} color={colors.accent.cyan} />
-            )}
-            <Text style={[styles.actionBtnText, { color: colors.accent.cyan }]}>
-              {isLocating ? 'Locating...' : 'Locate Me'}
-            </Text>
-          </TouchableOpacity>
+        {/* ── CLOUD LAYER ─────────────────── */}
+        {isLayerOn('clouds') &&
+          CLOUD_REGIONS.map((cloud) => {
+            // Color based on rain density (0-100)
+            const density = cloud.rainDensity || 0;
+            let fillColor = 'rgba(200, 200, 210, 0.20)'; // light/stratus
+            if (density > 75) {
+              fillColor = 'rgba(100, 100, 120, 0.55)'; // dense/cumulonimbus
+            } else if (density > 40) {
+              fillColor = 'rgba(160, 160, 180, 0.40)'; // medium/cumulus
+            }
 
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: colors.severity.low.bg, borderColor: colors.severity.low.text }]}
-            onPress={handleSafeExit}
-          >
-            <WeatherIcon name="route" size={16} color={colors.severity.low.text} />
-            <Text style={[styles.actionBtnText, { color: colors.severity.low.text }]}>Safe Exit</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, showRoutes ? { backgroundColor: colors.severity.moderate.bg, borderColor: colors.severity.moderate.text } : { backgroundColor: colors.bg.glass, borderColor: colors.border.default }]}
-            onPress={() => { setShowRoutes(!showRoutes); if (!showRoutes) setActiveRoute(null); }}
-          >
-            <WeatherIcon name="landslide" size={16} color={showRoutes ? colors.severity.moderate.text : colors.text.secondary} />
-            <Text style={[styles.actionBtnText, { color: showRoutes ? colors.severity.moderate.text : colors.text.secondary }]}>
-              {showRoutes ? 'Hide Routes' : 'All Routes'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Map Area */}
-        <GlassCard style={styles.mapCard} noPadding>
-          <Svg width={MAP_WIDTH} height={MAP_HEIGHT} viewBox={`0 0 ${MAP_WIDTH - 2} ${MAP_HEIGHT}`}>
-            {ZONES.map((zone) => (
-              <React.Fragment key={zone.id}>
-                <Rect
-                  x={zone.x}
-                  y={zone.y}
-                  width={zone.w}
-                  height={zone.h}
-                  rx={8}
-                  fill={RISK_COLORS[zone.risk]}
-                  stroke={RISK_STROKE[zone.risk]}
-                  strokeWidth={selectedZone === zone.id ? 2.5 : 1.5}
-                  onPress={() => setSelectedZone(zone.id === selectedZone ? null : zone.id)}
-                />
-                <SvgText
-                  x={zone.x + zone.w / 2}
-                  y={zone.y + zone.h / 2 - 10}
-                  fill={colors.text.primary}
-                  fontSize={11}
-                  fontWeight="700"
-                  textAnchor="middle"
-                >
-                  {zone.name}
-                </SvgText>
-                <SvgText
-                  x={zone.x + zone.w / 2}
-                  y={zone.y + zone.h / 2 + 5}
-                  fill={RISK_STROKE[zone.risk]}
-                  fontSize={9}
-                  fontWeight="800"
-                  textAnchor="middle"
-                >
-                  {zone.risk}
-                </SvgText>
-                {/* Landslide indicator */}
-                {zone.landslideRisk > 40 && (
-                  <>
-                    <SvgCircle
-                      cx={zone.x + zone.w - 12}
-                      cy={zone.y + 12}
-                      r={8}
-                      fill={zone.landslideRisk > 70 ? colors.severity.critical.bg : colors.severity.moderate.bg}
-                      stroke={zone.landslideRisk > 70 ? colors.severity.critical.text : colors.severity.moderate.text}
-                      strokeWidth={1}
-                    />
-                    <SvgText
-                      x={zone.x + zone.w - 12}
-                      y={zone.y + 15}
-                      fill={zone.landslideRisk > 70 ? colors.severity.critical.text : colors.severity.moderate.text}
-                      fontSize={7}
-                      fontWeight="800"
-                      textAnchor="middle"
-                    >
-                      LS
-                    </SvgText>
-                  </>
-                )}
-              </React.Fragment>
-            ))}
-
-            {/* Evacuation routes */}
-            {showRoutes && !activeRoute && EVACUATION_ROUTES.map((route) => (
-              <SvgPath
-                key={route.id}
-                d={getRoutePathD(route)}
-                fill="none"
-                stroke={ROAD_CONDITION_COLORS[route.roadCondition]}
-                strokeWidth={2}
-                strokeDasharray="6 4"
-                opacity={0.7}
+            return (
+              <Polygon
+                key={cloud.id}
+                coordinates={cloud.coordinates}
+                fillColor={fillColor}
+                strokeColor="rgba(150, 150, 170, 0.4)"
+                strokeWidth={1}
               />
-            ))}
+            );
+          })}
 
-            {/* Active route (highlighted) */}
-            {activeRoute && (
-              <SvgPath
-                d={getRoutePathD(activeRoute)}
-                fill="none"
-                stroke={colors.severity.low.text}
+        {/* ── WIND DIRECTION LAYER ──────────── */}
+        {isLayerOn('wind') &&
+          CLOUD_REGIONS.map((cloud) => {
+            // Find rough center of cloud for wind marker
+            const latSum = cloud.coordinates.reduce((sum, c) => sum + c.latitude, 0);
+            const lngSum = cloud.coordinates.reduce((sum, c) => sum + c.longitude, 0);
+            const center = {
+              latitude: latSum / cloud.coordinates.length,
+              longitude: lngSum / cloud.coordinates.length,
+            };
+
+            return (
+              <Marker
+                key={`wind_${cloud.id}`}
+                coordinate={center}
+                rotation={cloud.windDirection}
+                anchor={{ x: 0.5, y: 0.5 }}
+                title={`Wind: ${cloud.windSpeed} km/h`}
+                description={`Direction: ${cloud.windDirection}°`}
+                icon={undefined} // Default marker
+                flat={true} // Rotates with the map
+              >
+                <View style={{ width: 30, height: 30, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 24, transform: [{ rotate: '-45deg' }] }}>➤</Text>
+                </View>
+              </Marker>
+            );
+          })}
+
+        {/* ── FLOOD RISK LAYER ────────────── */}
+        {isLayerOn('flood') &&
+          FLOOD_ZONES.map((zone) => {
+            const risk = getTimeAdjustedRisk(zone.id, 'flood') ?? zone.risk;
+            return (
+              <Polygon
+                key={zone.id}
+                coordinates={zone.coordinates}
+                fillColor={RISK_FILL_COLORS[risk]}
+                strokeColor={RISK_STROKE_COLORS[risk]}
+                strokeWidth={selectedZoneId === zone.id ? 3 : 1.5}
+                tappable
+                onPress={() =>
+                  setSelectedZoneId(zone.id === selectedZoneId ? null : zone.id)
+                }
+              />
+            );
+          })}
+
+        {/* ── LANDSLIDE RISK LAYER ────────── */}
+        {isLayerOn('landslide') &&
+          LANDSLIDE_ZONES.map((zone) => {
+            const risk = getTimeAdjustedRisk(zone.id, 'landslide') ?? zone.risk;
+            return (
+              <Polygon
+                key={zone.id}
+                coordinates={zone.coordinates}
+                fillColor={RISK_FILL_COLORS[risk]}
+                strokeColor={RISK_STROKE_COLORS[risk]}
+                strokeWidth={selectedZoneId === zone.id ? 3 : 1.5}
+                tappable
+                lineDashPattern={[6, 4]} // dashed to distinguish from flood
+                onPress={() =>
+                  setSelectedZoneId(zone.id === selectedZoneId ? null : zone.id)
+                }
+              />
+            );
+          })}
+
+        {/* ── WATER LEVEL LAYER (rivers) ──── */}
+        {isLayerOn('waterLevel') &&
+          RIVER_SEGMENTS.map((river) => {
+            const isFlooding = river.waterLevel >= river.floodStage;
+            return (
+              <Polyline
+                key={river.id}
+                coordinates={river.waypoints}
+                strokeColor={isFlooding ? '#F87171' : '#60A5FA'}
+                strokeWidth={isFlooding ? 4 : 2.5}
+                lineDashPattern={isFlooding ? undefined : [8, 4]}
+              />
+            );
+          })}
+
+        {/* ── ROAD LAYER ──────────────────── */}
+        {isLayerOn('roads') &&
+          ROAD_SEGMENTS.map((road) => (
+            <Polyline
+              key={road.id}
+              coordinates={road.waypoints}
+              strokeColor={ROAD_CONDITION_COLORS[road.condition]}
+              strokeWidth={2}
+              lineDashPattern={road.condition === 'BLOCKED' ? [4, 4] : undefined}
+            />
+          ))}
+
+        {/* ── SAFE ZONE LAYER ─────────────── */}
+        {isLayerOn('safeZones') &&
+          SAFETY_POINTS.filter((sp) => sp.type === 'relief_center' || sp.type === 'shelter').map(
+            (sp) => (
+              <Circle
+                key={`sz_${sp.id}`}
+                center={sp.coordinate}
+                radius={250}
+                fillColor="rgba(74, 222, 128, 0.12)"
+                strokeColor="#4ADE80"
+                strokeWidth={1}
+              />
+            )
+          )}
+
+        {/* ── SHELTER MARKERS ─────────────── */}
+        {isLayerOn('shelters') &&
+          SAFETY_POINTS.filter((sp) => sp.type === 'shelter' || sp.type === 'relief_center' || sp.type === 'school').map(
+            (sp) => (
+              <Marker
+                key={sp.id}
+                coordinate={sp.coordinate}
+                title={sp.name}
+                description={`${sp.type.toUpperCase()} • Capacity: ${sp.capacity} • ${sp.status}`}
+                pinColor={SAFETY_POINT_COLORS[sp.type]}
+              />
+            )
+          )}
+
+        {/* ── HOSPITAL MARKERS ────────────── */}
+        {isLayerOn('hospitals') &&
+          SAFETY_POINTS.filter((sp) => sp.type === 'hospital').map((sp) => (
+            <Marker
+              key={sp.id}
+              coordinate={sp.coordinate}
+              title={sp.name}
+              description={`HOSPITAL • Capacity: ${sp.capacity} • ${sp.status}`}
+              pinColor="#60A5FA"
+            />
+          ))}
+
+        {/* ── EVACUATION ROUTE LAYER ──────── */}
+        {isLayerOn('evacRoutes') &&
+          GEO_EVAC_ROUTES.map((route) => (
+            <React.Fragment key={route.id}>
+              <Polyline
+                coordinates={route.waypoints}
+                strokeColor="#4ADE80"
                 strokeWidth={3}
-                strokeDasharray="8 4"
-                opacity={1}
+                lineDashPattern={[10, 6]}
               />
-            )}
+              {/* End marker */}
+              <Marker
+                coordinate={route.waypoints[route.waypoints.length - 1]}
+                title={route.toName}
+                description={`${route.distanceKm}km • ${route.estimatedMinutes}min • ${route.roadCondition}`}
+                pinColor="#4ADE80"
+              />
+            </React.Fragment>
+          ))}
 
-            {/* User location marker */}
-            <SvgCircle cx={userMarkerX} cy={userMarkerY} r={6} fill={colors.accent.cyan} />
-            <SvgCircle cx={userMarkerX} cy={userMarkerY} r={12} fill="none" stroke={colors.accent.cyan} strokeWidth={1.5} opacity={0.4} />
-            <SvgCircle cx={userMarkerX} cy={userMarkerY} r={18} fill="none" stroke={colors.accent.cyan} strokeWidth={1} opacity={0.2} />
-          </Svg>
-        </GlassCard>
+        {/* ── SENSOR MARKERS ──────────────── */}
+        {isLayerOn('rainSensors') &&
+          SENSOR_POINTS.filter((s) => s.type === 'rain').map((s) => (
+            <Marker
+              key={s.id}
+              coordinate={s.coordinate}
+              title={`${s.name} (${s.status})`}
+              description={`${s.reading} ${s.unit} • Updated: ${s.lastUpdated}`}
+              pinColor={s.status === 'ONLINE' ? '#60A5FA' : '#64748B'}
+            />
+          ))}
+        {isLayerOn('waterSensors') &&
+          SENSOR_POINTS.filter((s) => s.type === 'water_level').map((s) => (
+            <Marker
+              key={s.id}
+              coordinate={s.coordinate}
+              title={`${s.name} (${s.status})`}
+              description={`${s.reading} ${s.unit} • Updated: ${s.lastUpdated}`}
+              pinColor={s.status === 'ONLINE' ? '#818CF8' : '#64748B'}
+            />
+          ))}
+        {isLayerOn('soilSensors') &&
+          SENSOR_POINTS.filter((s) => s.type === 'soil').map((s) => (
+            <Marker
+              key={s.id}
+              coordinate={s.coordinate}
+              title={`${s.name} (${s.status})`}
+              description={`${s.reading} ${s.unit} • Updated: ${s.lastUpdated}`}
+              pinColor={s.status === 'ONLINE' ? '#A78BFA' : '#64748B'}
+            />
+          ))}
 
-        {/* Active Route Card */}
-        {activeRoute && (
-          <GlassCard style={styles.routeCard} glowColor={colors.severity.low.text}>
-            <View style={styles.routeHeader}>
-              <WeatherIcon name="route" size={18} color={colors.severity.low.text} />
-              <Text style={[styles.routeTitle, { color: colors.text.primary }]}>Safe Exit Route</Text>
-            </View>
-            <View style={styles.routeDetails}>
-              <View style={styles.routeDetailItem}>
-                <Text style={[styles.routeDetailLabel, { color: colors.text.tertiary }]}>Destination</Text>
-                <Text style={[styles.routeDetailValue, { color: colors.text.primary }]}>{activeRoute.toName}</Text>
-              </View>
-              <View style={[styles.routeDetailDivider, { backgroundColor: colors.border.subtle }]} />
-              <View style={styles.routeDetailItem}>
-                <Text style={[styles.routeDetailLabel, { color: colors.text.tertiary }]}>Distance</Text>
-                <Text style={[styles.routeDetailValue, { color: colors.text.primary }]}>{activeRoute.distanceKm} km</Text>
-              </View>
-              <View style={[styles.routeDetailDivider, { backgroundColor: colors.border.subtle }]} />
-              <View style={styles.routeDetailItem}>
-                <Text style={[styles.routeDetailLabel, { color: colors.text.tertiary }]}>ETA</Text>
-                <Text style={[styles.routeDetailValue, { color: colors.text.primary }]}>{activeRoute.estimatedMinutes} min</Text>
-              </View>
-            </View>
-            <View style={styles.routeConditionRow}>
-              <View style={[styles.routeConditionDot, { backgroundColor: ROAD_CONDITION_COLORS[activeRoute.roadCondition] }]} />
-              <Text style={[styles.routeConditionText, { color: colors.text.secondary }]}>
-                Road condition: {activeRoute.roadCondition}
-              </Text>
-            </View>
-          </GlassCard>
+        {/* ── USER LOCATION ───────────────── */}
+        {latitude && longitude && (
+          <Marker
+            coordinate={{ latitude, longitude }}
+            title="Your Location"
+            pinColor={colors.accent.cyan}
+          />
         )}
 
-        {/* Legend */}
-        <GlassCard style={styles.legendCard}>
-          <Text style={[styles.legendTitle, { color: colors.text.tertiary }]}>RISK LEGEND</Text>
-          <View style={styles.legendRow}>
-            {(['LOW', 'MODERATE', 'HIGH', 'CRITICAL'] as const).map((level) => (
-              <View key={level} style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: RISK_STROKE[level] }]} />
-                <Text style={[styles.legendText, { color: colors.text.secondary }]}>{level}</Text>
-              </View>
-            ))}
-          </View>
-          <View style={[styles.legendDivider, { backgroundColor: colors.border.subtle }]} />
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.accent.cyan }]} />
-              <Text style={[styles.legendText, { color: colors.text.secondary }]}>Your Location</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.severity.moderate.text, width: 10, height: 10, borderRadius: 5 }]}>
-                <Text style={{ fontSize: 5, color: '#FFF', textAlign: 'center', lineHeight: 10 }}>LS</Text>
-              </View>
-              <Text style={[styles.legendText, { color: colors.text.secondary }]}>Landslide Risk</Text>
-            </View>
-          </View>
-        </GlassCard>
+        {/* ── FALLBACK SHIMLA PIN ─────────── */}
+        {(!latitude || !longitude) && (
+          <Marker
+            coordinate={{ latitude: SHIMLA_REGION.latitude, longitude: SHIMLA_REGION.longitude }}
+            title="Shimla Center"
+            pinColor={colors.accent.cyan}
+          />
+        )}
+      </MapView>
 
-        {/* Zone Details */}
-        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Zone Details</Text>
-        {ZONES.map((zone) => (
-          <GlassCard key={zone.id} style={styles.zoneDetailCard}>
-            <View style={styles.zoneRow}>
-              <View style={[styles.zoneDot, { backgroundColor: RISK_STROKE[zone.risk] }]} />
-              <View style={styles.zoneInfo}>
-                <Text style={[styles.zoneName, { color: colors.text.primary }]}>{zone.name}</Text>
-                <Text style={[styles.zoneId, { color: colors.text.muted }]}>{zone.id.toUpperCase()}</Text>
+      {/* ═══ FLOATING UI OVERLAYS ═══ */}
+      <View style={styles.overlayContainer} pointerEvents="box-none">
+        {/* ── Top Bar ─────────────────────── */}
+        <View style={styles.topBar}>
+          <GlassCard style={styles.headerCard}>
+            <View style={styles.headerRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.title, { color: colors.text.primary }]}>
+                  WEATHERGUARD MAP
+                </Text>
+                <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+                  {latitude
+                    ? `GPS: ${latitude.toFixed(4)}, ${longitude?.toFixed(4)}`
+                    : 'Shimla Region, NW India'}{' '}
+                  • Windy.com API
+                </Text>
               </View>
-              <View style={styles.zoneRightCol}>
-                <View style={[styles.riskPill, { backgroundColor: RISK_COLORS[zone.risk] }]}>
-                  <Text style={[styles.riskPillText, { color: RISK_STROKE[zone.risk] }]}>
-                    {zone.risk}
+              {/* Mode badges */}
+              <View style={styles.modeBadges}>
+                <View
+                  style={[
+                    styles.modeBadge,
+                    {
+                      backgroundColor: colors.accent.cyanGlow,
+                      borderColor: colors.accent.cyan,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.modeBadgeText, { color: colors.accent.cyan }]}>
+                    {mapMode}
                   </Text>
                 </View>
-                {zone.landslideRisk > 20 && (
-                  <Text style={[styles.landslideSmall, {
-                    color: zone.landslideRisk > 70 ? colors.severity.critical.text :
-                           zone.landslideRisk > 40 ? colors.severity.moderate.text :
-                           colors.text.tertiary
-                  }]}>
-                    LS: {zone.landslideRisk}%
-                  </Text>
-                )}
               </View>
             </View>
           </GlassCard>
-        ))}
-      </ScrollView>
-    </LinearGradient>
+
+          {/* ── Action Buttons Row ─────────── */}
+          <View style={styles.actionRow}>
+            {/* Layer Toggle */}
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                {
+                  backgroundColor: isLayerPanelOpen
+                    ? colors.accent.cyan
+                    : colors.bg.glass,
+                  borderColor: colors.accent.cyan,
+                },
+              ]}
+              onPress={toggleLayerPanel}
+            >
+              <WeatherIcon
+                name="layers"
+                size={16}
+                color={isLayerPanelOpen ? (isDark ? '#0A0E1A' : '#fff') : colors.accent.cyan}
+              />
+              <Text
+                style={[
+                  styles.actionBtnText,
+                  {
+                    color: isLayerPanelOpen
+                      ? (isDark ? '#0A0E1A' : '#fff')
+                      : colors.accent.cyan,
+                  },
+                ]}
+              >
+                Layers
+              </Text>
+            </TouchableOpacity>
+
+            {/* Locate Me */}
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                { backgroundColor: colors.bg.glass, borderColor: colors.accent.cyan },
+              ]}
+              onPress={handleLocateMe}
+            >
+              {isLocating ? (
+                <ActivityIndicator size="small" color={colors.accent.cyan} />
+              ) : (
+                <WeatherIcon name="location" size={16} color={colors.accent.cyan} />
+              )}
+              <Text style={[styles.actionBtnText, { color: colors.accent.cyan }]}>
+                {isLocating ? 'Locating...' : 'Locate Me'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Evacuation toggle */}
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                {
+                  backgroundColor: isLayerOn('evacRoutes')
+                    ? colors.severity.low.text
+                    : colors.bg.glass,
+                  borderColor: colors.severity.low.text,
+                },
+              ]}
+              onPress={() => useMapLayerStore.getState().toggleLayer('evacRoutes')}
+            >
+              <WeatherIcon
+                name="route"
+                size={16}
+                color={isLayerOn('evacRoutes') ? (isDark ? '#0A0E1A' : '#fff') : colors.severity.low.text}
+              />
+              <Text
+                style={[
+                  styles.actionBtnText,
+                  {
+                    color: isLayerOn('evacRoutes')
+                      ? (isDark ? '#0A0E1A' : '#fff')
+                      : colors.severity.low.text,
+                  },
+                ]}
+              >
+                Safe Exit
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Spacer pushes detail popup to bottom */}
+        <View style={styles.spacer} pointerEvents="none" />
+
+        {/* ── Active Layers Badge ─────────── */}
+        <View style={styles.activeBadgeRow}>
+          {layers
+            .filter((l) => l.enabled)
+            .map((l) => (
+              <View
+                key={l.id}
+                style={[
+                  styles.activeBadge,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(0, 212, 255, 0.10)'
+                      : 'rgba(2, 132, 199, 0.08)',
+                    borderColor: colors.accent.cyan + '40',
+                  },
+                ]}
+              >
+                <Text style={[styles.activeBadgeText, { color: colors.accent.cyan }]}>
+                  {l.label}
+                </Text>
+              </View>
+            ))}
+        </View>
+
+        {/* ── Zone Detail Popup ────────────── */}
+        {selectedZone && (
+          <ZoneDetailPopup
+            zone={selectedZone}
+            onClose={() => setSelectedZoneId(null)}
+          />
+        )}
+      </View>
+
+      {/* ═══ TIMELINE SLIDER (bottom) ═══ */}
+      <TimelineSlider />
+
+      {/* ═══ LAYER CONTROL PANEL (slides from right) ═══ */}
+      <LayerControlPanel />
+    </View>
   );
 };
 
+// ─── STYLES ──────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.lg, paddingBottom: 100 },
-
-  header: {
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  overlayContainer: {
+    flex: 1,
+    paddingTop: 55,
+    paddingHorizontal: Spacing.md,
+  },
+  topBar: {
+    gap: Spacing.sm,
+  },
+  headerCard: {},
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 60,
-    marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: FontSize.xxl,
+    fontSize: FontSize.lg,
     fontWeight: '900',
+    letterSpacing: 1,
   },
   subtitle: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     marginTop: 2,
   },
-  headerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+  modeBadges: {
+    flexDirection: 'row',
+    gap: 6,
   },
-
-  // Action buttons
+  modeBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+  },
+  modeBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
   actionRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+    gap: 6,
   },
   actionBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   actionBtnText: {
     fontSize: FontSize.xs,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
-
-  mapCard: {
-    marginBottom: Spacing.lg,
-    overflow: 'hidden',
-  },
-
-  // Route card
-  routeCard: {
-    marginBottom: Spacing.lg,
-  },
-  routeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  routeTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  routeDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  routeDetailItem: {
+  spacer: {
     flex: 1,
-    alignItems: 'center',
   },
-  routeDetailLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  routeDetailValue: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  routeDetailDivider: {
-    width: 1,
-    height: 28,
-  },
-  routeConditionRow: {
+  activeBadgeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  routeConditionDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  routeConditionText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-
-  legendCard: {
-    marginBottom: Spacing.xxl,
-  },
-  legendTitle: {
-    fontSize: FontSize.xs,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: Spacing.md,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  legendText: {
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-  },
-  legendDivider: {
-    height: 1,
-    marginVertical: Spacing.md,
-  },
-
-  sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '800',
-    marginBottom: Spacing.md,
-  },
-
-  zoneDetailCard: {
+    flexWrap: 'wrap',
+    gap: 4,
     marginBottom: Spacing.sm,
   },
-  zoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  activeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
   },
-  zoneDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: Spacing.md,
-  },
-  zoneInfo: {
-    flex: 1,
-  },
-  zoneName: {
-    fontSize: FontSize.md,
+  activeBadgeText: {
+    fontSize: 9,
     fontWeight: '700',
-  },
-  zoneId: {
-    fontSize: FontSize.xs,
-    marginTop: 2,
-  },
-  zoneRightCol: {
-    alignItems: 'flex-end',
-  },
-  riskPill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-  },
-  riskPillText: {
-    fontSize: FontSize.xs,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  landslideSmall: {
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-    marginTop: 2,
   },
 });

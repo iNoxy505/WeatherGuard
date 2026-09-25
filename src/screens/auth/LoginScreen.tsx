@@ -8,8 +8,9 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ImageBackground,
+  Image,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../state/useAuthStore';
 import { useTheme } from '../../theme/ThemeContext';
@@ -20,7 +21,7 @@ import { FontSize, Spacing, BorderRadius } from '../../theme/colors';
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { login, isLoading, error, clearError } = useAuthStore();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +33,12 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient colors={colors.gradient.welcome} style={styles.container}>
+    <ImageBackground
+      source={require('../../assets/images/welcome_bg.jpg')}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={[styles.overlay, { backgroundColor: isDark ? 'rgba(10, 14, 26, 0.75)' : 'rgba(255, 255, 255, 0.4)' }]} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
@@ -51,11 +57,12 @@ export const LoginScreen: React.FC = () => {
 
           {/* Header */}
           <View style={styles.header}>
-            <View style={[styles.iconGlow, { backgroundColor: colors.accent.cyanGlow, borderColor: 'rgba(0, 212, 255, 0.2)' }]}>
-              <WeatherIcon name="shield" size={32} color={colors.accent.cyan} />
-            </View>
-            <Text style={[styles.title, { color: colors.text.primary }]}>Welcome Back</Text>
-            <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+            <Image 
+              source={require('../../assets/images/logo.jpg')}
+              style={styles.logo}
+            />
+            <Text style={[styles.title, { color: isDark ? colors.text.primary : '#000' }]}>Welcome Back</Text>
+            <Text style={[styles.subtitle, { color: isDark ? colors.text.secondary : '#333' }]}>
               Sign in to your WeatherGuard account
             </Text>
           </View>
@@ -104,6 +111,14 @@ export const LoginScreen: React.FC = () => {
               </View>
             </View>
 
+            <View style={styles.forgotPasswordContainer}>
+              <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                <Text style={[styles.forgotPasswordText, { color: isDark ? colors.accent.cyan : '#0284C7' }]}>
+                  Forgot Password?
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <GradientButton
               title="Sign In"
               onPress={handleLogin}
@@ -112,6 +127,23 @@ export const LoginScreen: React.FC = () => {
               size="large"
               style={styles.loginBtn}
             />
+
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border.subtle }]} />
+              <Text style={[styles.dividerText, { color: colors.text.muted }]}>OR</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border.subtle }]} />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.googleBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#FFFFFF', borderColor: colors.border.subtle }]}
+              onPress={() => {
+                // Mock Google Sign in
+                login('google_user@gmail.com', 'password');
+              }}
+            >
+              <WeatherIcon name="user" size={20} color={isDark ? '#FFFFFF' : '#000000'} />
+              <Text style={[styles.googleBtnText, { color: isDark ? '#FFFFFF' : '#000000' }]}>Sign in with Google</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Sign up link */}
@@ -123,12 +155,13 @@ export const LoginScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  overlay: { ...StyleSheet.absoluteFillObject },
   flex: { flex: 1 },
   content: {
     flexGrow: 1,
@@ -147,14 +180,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xxxl,
   },
-  iconGlow: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     marginBottom: Spacing.lg,
-    borderWidth: 1,
   },
   title: {
     fontSize: FontSize.xxxl,
@@ -204,13 +234,48 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: '700',
   },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: Spacing.xl,
+  },
+  forgotPasswordText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
   loginBtn: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.xs,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.xl,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: Spacing.md,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: Spacing.md,
+  },
+  googleBtnText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: Spacing.xxxl,
+    marginTop: Spacing.xl,
   },
   footerText: {
     fontSize: FontSize.md,

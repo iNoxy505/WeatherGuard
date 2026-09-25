@@ -6,8 +6,8 @@ import {
   ScrollView,
   RefreshControl,
   Dimensions,
+  ImageBackground,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../state/useAuthStore';
 import { useRiskStore } from '../../state/useRiskStore';
@@ -63,8 +63,12 @@ export const DashboardScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient colors={colors.gradient.primary} style={styles.container}>
-      <BackgroundPattern isDark={isDark} variant="topography" />
+    <ImageBackground
+      source={require('../../assets/images/dashboard_bg.jpg')}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={[styles.overlay, { backgroundColor: isDark ? 'rgba(10, 14, 26, 0.65)' : 'rgba(255, 255, 255, 0.5)' }]} />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -238,12 +242,13 @@ export const DashboardScreen: React.FC = () => {
           ))}
         </GlassCard>
       </ScrollView>
-    </LinearGradient>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  overlay: { ...StyleSheet.absoluteFillObject },
   content: { padding: Spacing.lg, paddingBottom: 100 },
 
   // Header

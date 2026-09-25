@@ -1,7 +1,7 @@
 import React from 'react';
 import Svg, { Path, Circle, G, Line, Polyline } from 'react-native-svg';
 
-export type IconName = 'sun' | 'moon' | 'rain' | 'storm' | 'wind' | 'flood' | 'cloud' | 'shield' | 'alert' | 'map' | 'user' | 'settings' | 'bell' | 'logout' | 'edit' | 'check' | 'arrow-right' | 'home' | 'sos' | 'landslide' | 'route' | 'location' | 'history' | 'database';
+export type IconName = 'sun' | 'moon' | 'rain' | 'storm' | 'wind' | 'flood' | 'cloud' | 'shield' | 'alert' | 'map' | 'user' | 'settings' | 'bell' | 'logout' | 'edit' | 'check' | 'arrow-right' | 'home' | 'sos' | 'landslide' | 'route' | 'location' | 'history' | 'database' | 'layers' | 'sensor' | 'safe' | 'clock' | 'water' | 'shelter' | 'hospital' | 'road';
 
 interface WeatherIconProps {
   name: IconName;
@@ -170,6 +170,63 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({ name, size = 24, color
         <Path d="M12 2C6.48 2 2 3.79 2 6v12c0 2.21 4.48 4 10 4s10-1.79 10-4V6c0-2.21-4.48-4-10-4z" fill="none" stroke={color} strokeWidth="2" />
         <Path d="M2 6c0 2.21 4.48 4 10 4s10-1.79 10-4" fill="none" stroke={color} strokeWidth="2" />
         <Path d="M2 12c0 2.21 4.48 4 10 4s10-1.79 10-4" fill="none" stroke={color} strokeWidth="2" />
+      </G>
+    ),
+    layers: (
+      <G>
+        <Path d="M12 2L2 7l10 5 10-5-10-5z" fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+        <Path d="M2 17l10 5 10-5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M2 12l10 5 10-5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </G>
+    ),
+    sensor: (
+      <G>
+        <Circle cx="12" cy="12" r="3" fill="none" stroke={color} strokeWidth="2" />
+        <Path d="M12 2v4" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Path d="M12 18v4" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Path d="M4.93 4.93l2.83 2.83" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Path d="M16.24 16.24l2.83 2.83" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Path d="M2 12h4" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Path d="M18 12h4" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      </G>
+    ),
+    safe: (
+      <G>
+        <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke={color} strokeWidth="2" />
+        <Polyline points="9 12 11 14 15 10" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </G>
+    ),
+    clock: (
+      <G>
+        <Circle cx="12" cy="12" r="10" fill="none" stroke={color} strokeWidth="2" />
+        <Polyline points="12 6 12 12 16 14" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </G>
+    ),
+    water: (
+      <G>
+        <Path d="M12 2C6.5 10 4 14 4 17a8 8 0 0 0 16 0c0-3-2.5-7-8-15z" fill="none" stroke={color} strokeWidth="2" />
+      </G>
+    ),
+    shelter: (
+      <G>
+        <Path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="none" stroke={color} strokeWidth="2" />
+        <Polyline points="9 22 9 12 15 12 15 22" fill="none" stroke={color} strokeWidth="2" />
+      </G>
+    ),
+    hospital: (
+      <G>
+        <Path d="M3 3h18v18H3z" fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+        <Line x1="12" y1="8" x2="12" y2="16" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Line x1="8" y1="12" x2="16" y2="12" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      </G>
+    ),
+    road: (
+      <G>
+        <Path d="M6 2L2 22" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Path d="M18 2L22 22" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Line x1="12" y1="4" x2="12" y2="7" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Line x1="12" y1="10" x2="12" y2="13" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <Line x1="12" y1="16" x2="12" y2="19" stroke={color} strokeWidth="2" strokeLinecap="round" />
       </G>
     ),
   };
